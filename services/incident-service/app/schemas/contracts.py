@@ -106,7 +106,36 @@ class IncidentResolved(BaseModel):
     event_type: Literal["incident.resolved"] = "incident.resolved"
     incident_id: str
     team_id: str
+    station_code: str  # CP5: tekrar eden ariza tespiti icin Gamification'a gerekli (bkz. CONTRACTS.md)
     fault_type: FaultType
     priority: Priority
     created_at: datetime
     resolved_at: datetime
+
+
+class IncidentCreated(BaseModel):
+    event_type: Literal["incident.created"] = "incident.created"
+    incident_id: str
+    incident_number: str
+    station_code: str
+    fault_type: FaultType
+    priority: Priority
+    probability: float
+    created_at: datetime
+
+
+class IncidentEvaluated(BaseModel):
+    event_type: Literal["incident.evaluated"] = "incident.evaluated"
+    incident_id: str
+    stars: int = Field(ge=1, le=5)
+    is_permanent: bool
+    evaluated_by: str
+
+
+class IncidentSlaBreached(BaseModel):
+    event_type: Literal["incident.sla_breached"] = "incident.sla_breached"
+    incident_id: str
+    team_id: str | None = None  # CP5: atanmamis vaka ise None, Gamification ceza uygulamaz
+    priority: Priority
+    sla_due_at: datetime
+    breached_at: datetime

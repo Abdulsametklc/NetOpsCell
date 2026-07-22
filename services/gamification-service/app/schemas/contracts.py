@@ -34,6 +34,7 @@ class IncidentResolved(BaseModel):
     event_type: Literal["incident.resolved"] = "incident.resolved"
     incident_id: str
     team_id: str
+    station_code: str  # CP5: tekrar eden ariza tespiti icin
     fault_type: FaultType
     priority: Priority
     created_at: datetime
@@ -51,6 +52,7 @@ class IncidentEvaluated(BaseModel):
 class IncidentSlaBreached(BaseModel):
     event_type: Literal["incident.sla_breached"] = "incident.sla_breached"
     incident_id: str
+    team_id: str | None = None  # CP5: atanmamis vaka ise None
     priority: Priority
     sla_due_at: datetime
     breached_at: datetime
