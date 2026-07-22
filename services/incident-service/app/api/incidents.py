@@ -10,26 +10,38 @@ from app.core.auth import CurrentUser, get_current_user
 from app.core.database import get_db
 from app.core.event_publisher import publish_event
 from app.core.sequence import generate_incident_number
+from app.core.sla import SLA_DURATIONS
 from app.core.state_machine import (
     SYSTEM_ACTOR_ID,
     InvalidTransition,
     UnauthorizedTransition,
     validate_transition,
 )
-from app.models.incident import Incident, IncidentResolutionNote, IncidentStatusHistory, TelemetryReading
+from app.models.incident import (
+    Incident,
+    IncidentEvaluation,
+    IncidentMessage,
+    IncidentResolutionNote,
+    IncidentStatusHistory,
+    TelemetryReading,
+)
 from app.schemas.contracts import (
     AssignRequest,
     FaultType,
     IncidentAssigned,
+    IncidentCreated,
+    IncidentEvaluated,
     IncidentResolved,
     IncidentStatus,
     Priority,
     Suggestion,
     TelemetryInput,
 )
-from app.schemas.incident import StatusChangeRequest
+from app.schemas.incident import EvaluationCreate, MessageCreate, ResolutionNoteCreate, StatusChangeRequest
 
 router = APIRouter(prefix="/api/v1", tags=["incidents"])
+
+MESSAGING_ROLES = {"SAHA_TEKNISYENI", "NOC_OPERATORU"}
 
 
 def _incident_summary(incident: Incident) -> dict:
@@ -44,6 +56,8 @@ def _incident_summary(incident: Incident) -> dict:
         "ai_suggestion": incident.ai_suggestion,
         "assigned_team_id": str(incident.assigned_team_id) if incident.assigned_team_id else None,
         "assigned_team_name": incident.assigned_team_name,
+        "sla_due_at": incident.sla_due_at.isoformat() if incident.sla_due_at else None,
+        "sla_status": incident.sla_status,
         "resolved_at": incident.resolved_at.isoformat() if incident.resolved_at else None,
         "created_at": incident.created_at.isoformat() if incident.created_at else None,
     }
@@ -59,6 +73,7 @@ async def _create_incident(
     ai_suggestion: Suggestion | None,
 ) -> Incident:
     incident_number = await generate_incident_number(db)
+    now = datetime.now(timezone.utc)
     incident = Incident(
         incident_number=incident_number,
         station_code=reading.station_code,
@@ -69,10 +84,24 @@ async def _create_incident(
         priority=priority,
         probability=probability,
         ai_suggestion=ai_suggestion,
+        sla_due_at=now + SLA_DURATIONS[priority],
     )
     db.add(incident)
     await db.flush()
     reading.incident_id = incident.id
+
+    await publish_event(
+        "incident.created",
+        IncidentCreated(
+            incident_id=str(incident.id),
+            incident_number=incident.incident_number,
+            station_code=incident.station_code,
+            fault_type=fault_type,
+            priority=priority,
+            probability=probability or 0.0,
+            created_at=now,
+        ),
+    )
     return incident
 
 
@@ -281,8 +310,9 @@ async def change_status(
     incident.current_status = payload.to_status
 
     if payload.to_status == IncidentStatus.COZULDU:
-        resolved_at = datetime.now(timezone.utc)
-        incident.resolved_at = resolved_at
+        incident.resolved_at = datetime.now(timezone.utc)
+        if incident.sla_status == "ACTIVE":
+            incident.sla_status = "MET"
         db.add(
             IncidentResolutionNote(
                 incident_id=incident.id,
@@ -301,6 +331,7 @@ async def change_status(
             IncidentResolved(
                 incident_id=str(incident.id),
                 team_id=str(incident.assigned_team_id),
+                station_code=incident.station_code,
                 fault_type=incident.fault_type,
                 priority=incident.priority,
                 created_at=incident.created_at,
@@ -309,3 +340,177 @@ async def change_status(
         )
 
     return {"success": True, "data": _incident_summary(incident), "error": None}
+
+
+@router.post("/incidents/{incident_id}/messages", status_code=status.HTTP_201_CREATED)
+async def create_message(
+    incident_id: uuid.UUID,
+    payload: MessageCreate,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Case Bolum 4.5: saha teknisyeni ve NOC operatoru vaka uzerinden mesajlasabilir (thread)."""
+    incident = await db.get(Incident, incident_id)
+    if incident is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
+        )
+    if current_user.role not in MESSAGING_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "UNAUTHORIZED_TRANSITION", "message": "Bu role mesaj yazma yetkisi yok"},
+        )
+    if current_user.role == "SAHA_TEKNISYENI" and current_user.user_id != incident.assigned_team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "UNAUTHORIZED_TRANSITION", "message": "Bu vakaya atanan teknisyen siz degilsiniz"},
+        )
+
+    message = IncidentMessage(
+        incident_id=incident.id,
+        sender_id=current_user.user_id,
+        sender_role=current_user.role,
+        content=payload.content,
+    )
+    db.add(message)
+    await db.commit()
+    await db.refresh(message)
+
+    return {
+        "success": True,
+        "data": {
+            "id": str(message.id),
+            "sender_id": str(message.sender_id),
+            "sender_role": message.sender_role,
+            "content": message.content,
+            "created_at": message.created_at.isoformat(),
+        },
+        "error": None,
+    }
+
+
+@router.get("/incidents/{incident_id}/messages")
+async def list_messages(incident_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    incident = await db.get(Incident, incident_id)
+    if incident is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
+        )
+    result = await db.execute(
+        select(IncidentMessage).where(IncidentMessage.incident_id == incident_id).order_by(IncidentMessage.created_at)
+    )
+    messages = result.scalars().all()
+    return {
+        "success": True,
+        "data": [
+            {
+                "id": str(m.id),
+                "sender_id": str(m.sender_id),
+                "sender_role": m.sender_role,
+                "content": m.content,
+                "created_at": m.created_at.isoformat(),
+            }
+            for m in messages
+        ],
+        "error": None,
+    }
+
+
+@router.post("/incidents/{incident_id}/resolution-note", status_code=status.HTTP_201_CREATED)
+async def add_resolution_note(
+    incident_id: uuid.UUID,
+    payload: ResolutionNoteCreate,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Atanan teknisyenin, COZULDU gecisinden bagimsiz olarak vakaya ek cozum notu eklemesi
+    icin (durum degisikligi gerektirmeyen ara notlar)."""
+    incident = await db.get(Incident, incident_id)
+    if incident is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
+        )
+    if current_user.role != "SAHA_TEKNISYENI" or current_user.user_id != incident.assigned_team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "UNAUTHORIZED_TRANSITION", "message": "Bu vakaya atanan teknisyen siz degilsiniz"},
+        )
+
+    note = IncidentResolutionNote(incident_id=incident.id, technician_id=current_user.user_id, note=payload.note)
+    db.add(note)
+    await db.commit()
+    await db.refresh(note)
+
+    return {
+        "success": True,
+        "data": {"id": str(note.id), "note": note.note, "created_at": note.created_at.isoformat()},
+        "error": None,
+    }
+
+
+@router.post("/incidents/{incident_id}/evaluation", status_code=status.HTTP_201_CREATED)
+async def create_evaluation(
+    incident_id: uuid.UUID,
+    payload: EvaluationCreate,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Case Bolum 4.6: vaka KAPANDI durumuna gectikten sonra NOC operatoru cozumu 1-5 yildiz
+    degerlendirir. Tek seferliktir."""
+    incident = await db.get(Incident, incident_id)
+    if incident is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
+        )
+    if current_user.role != "NOC_OPERATORU":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "UNAUTHORIZED_TRANSITION", "message": "Sadece NOC operatoru degerlendirme yapabilir"},
+        )
+    if incident.current_status != IncidentStatus.KAPANDI:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "INCIDENT_NOT_CLOSED", "message": "Vaka henuz KAPANDI durumunda degil"},
+        )
+
+    existing = await db.execute(select(IncidentEvaluation).where(IncidentEvaluation.incident_id == incident.id))
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "ALREADY_EVALUATED", "message": "Bu vaka zaten degerlendirildi"},
+        )
+
+    evaluation = IncidentEvaluation(
+        incident_id=incident.id,
+        noc_operator_id=current_user.user_id,
+        stars=payload.stars,
+        is_permanent=payload.is_permanent,
+    )
+    db.add(evaluation)
+    await db.commit()
+    await db.refresh(evaluation)
+
+    await publish_event(
+        "incident.evaluated",
+        IncidentEvaluated(
+            incident_id=str(incident.id),
+            stars=payload.stars,
+            is_permanent=payload.is_permanent,
+            evaluated_by=str(current_user.user_id),
+        ),
+    )
+
+    return {
+        "success": True,
+        "data": {
+            "id": str(evaluation.id),
+            "stars": evaluation.stars,
+            "is_permanent": evaluation.is_permanent,
+            "created_at": evaluation.created_at.isoformat(),
+        },
+        "error": None,
+    }

@@ -2,7 +2,12 @@ import asyncio
 import json
 import logging
 
-from app.consumers.handlers import handle_incident_resolved
+from app.consumers.handlers import (
+    handle_incident_created,
+    handle_incident_evaluated,
+    handle_incident_resolved,
+    handle_sla_breached,
+)
 from app.core.database import async_session
 from app.core.redis_client import redis_client
 
@@ -10,9 +15,6 @@ logger = logging.getLogger(__name__)
 
 CONSUMER_GROUP = "gamification-service"
 
-# incident.resolved: CP4'te gercek puan/rozet mantigi baglandi (handlers.py).
-# Digerleri (incident.created, incident.evaluated, incident.sla_breached) hala CP5 isi -
-# simdilik sadece ack'lenip loglaniyor (bkz. TASK_SPLIT.md Kisi 2 gorev listesi).
 STREAMS = [
     "incident.created",
     "incident.resolved",
@@ -21,7 +23,10 @@ STREAMS = [
 ]
 
 HANDLERS = {
+    "incident.created": handle_incident_created,
     "incident.resolved": handle_incident_resolved,
+    "incident.evaluated": handle_incident_evaluated,
+    "incident.sla_breached": handle_sla_breached,
 }
 
 
