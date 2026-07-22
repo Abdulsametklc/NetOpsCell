@@ -271,8 +271,65 @@ class BadgeEarned(BaseModel):
 
 ---
 
-## 4. Henüz Eklenmedi (kickoff'ta üçü birlikte tamamlayacak)
+## 4. Ortak Altyapı Şemaları (ARCHITECTURE.md §3.2 / §5.1'deki kararların birebir aktarımı)
 
-- [ ] `ResponseEnvelope` genel şeması (`{success, data, error}`) — ARCHITECTURE.md §5.1
-- [ ] JWT payload şeması (`sub`, `role`, `specializations`, `regions`, ...) — ARCHITECTURE.md §3.2
-- [ ] Standart hata kodu listesi (`INVALID_TRANSITION`, `WEAK_PASSWORD`, vb.)
+> Not: Bu bölümdeki şemalar Identity Service + Gateway'i ilgilendirir (Kişi 1); burada yeni bir tasarım kararı alınmadı, sadece ARCHITECTURE.md'de zaten karara bağlanmış şekiller kod-yazılabilir netliğe taşındı. Kişi 1, kendi implementasyonunda bir sapma gerekirse bu bölümü güncelleyip diğer ikisine haber vermeli (TASK_SPLIT.md §8).
+
+### 4.1 `ResponseEnvelope` — tüm servislerin tüm response'larında ortak zarf
+
+```python
+from typing import Generic, TypeVar, Optional
+from pydantic import BaseModel
+
+T = TypeVar("T")
+
+class ErrorDetail(BaseModel):
+    code: str                      # bkz. 4.3 Standart Hata Kodları
+    message: str
+    violations: list[str] | None = None      # örn. WEAK_PASSWORD'de hangi kurallar ihlal edildi
+    retry_after_seconds: int | None = None    # örn. ACCOUNT_LOCKED / RATE_LIMITED
+
+class ResponseEnvelope(BaseModel, Generic[T]):
+    success: bool
+    data: T | None = None
+    error: ErrorDetail | None = None
+```
+
+Örnek başarı: `{"success": true, "data": {...}, "error": null}`
+Örnek hata: `{"success": false, "data": null, "error": {"code": "INVALID_TRANSITION", "message": "YENI durumundan MUDAHALE_EDILIYOR'a doğrudan geçiş yapılamaz", "violations": null, "retry_after_seconds": null}}`
+
+### 4.2 JWT Access Token Payload
+
+```python
+from pydantic import BaseModel
+
+class JWTPayload(BaseModel):
+    sub: str                       # user_id (uuid)
+    role: str                      # MUSTERI | SAHA_TEKNISYENI | NOC_OPERATORU | SUPERVIZOR | ADMIN
+    specializations: list[str] = []   # sadece SAHA_TEKNISYENI için anlamlı
+    regions: list[str] = []
+    token_type: str = "access"
+    iat: int
+    exp: int
+```
+
+- İmza algoritması: **RS256**. Gateway ve servisler Identity'nin **public key**'i ile doğrular, private key'e ihtiyaç duymaz.
+- Doğrulanan claim'ler downstream servislere `X-User-Id`, `X-User-Role`, `X-User-Specializations`, `X-User-Regions` header'ları olarak Gateway tarafından enjekte edilir (ARCHITECTURE.md §5, madde 2). Her servis kendi içinde de rol kontrolü yapar (defense in depth) — Gateway header'larına körü körüne güvenilmez.
+- Access token ömrü: 15 dakika. Refresh token (opaque, JWT değil) ömrü: 7 gün, rotation zinciriyle (`replaced_by_token_id`).
+
+### 4.3 Standart Hata Kodları
+
+| Kod | HTTP Status | Kullanıldığı Yer |
+|---|---|---|
+| `VALIDATION_ERROR` | 422 | Genel Pydantic doğrulama hatası (alan tipi/uzunluk vb.) |
+| `WEAK_PASSWORD` | 422 | Şifre politikası ihlali — `violations` alanında hangi kural(lar) |
+| `INVALID_CREDENTIALS` | 401 | Login: yanlış e-posta/şifre ya da GSM/OTP |
+| `ACCOUNT_LOCKED` | 423 | 5 başarısız girişten sonra — `retry_after_seconds` dolu |
+| `TOKEN_EXPIRED` | 401 | `exp` geçmiş access/refresh token |
+| `TOKEN_INVALID` | 401 | İmza doğrulanamayan / `alg=none` / bozuk token |
+| `TOKEN_REUSE_DETECTED` | 401 | Zaten `revoked_at` dolu refresh token tekrar kullanılmaya çalışıldı — tüm oturumlar iptal edilir |
+| `FORBIDDEN` | 403 | Rol yetersiz (RBAC) — audit log'a `UNAUTHORIZED_ACCESS` olarak yazılır |
+| `NOT_FOUND` | 404 | Kaynak yok / IDOR koruması (sahiplik kontrolünde de aynı kod döner — kaynağın var olup olmadığı sızdırılmaz) |
+| `INVALID_TRANSITION` | 422 | Incident state machine'de graf dışı geçiş — `{"from": "...", "to": "..."}` detayında |
+| `RATE_LIMITED` | 429 | Gateway rate limit aşımı |
+| `AI_SERVICE_UNAVAILABLE` | — (Incident bunu asla dışa döndürmez) | Incident Service içi durum; dış cevap her zaman `BELIRSIZ/ORTA` ile 201 döner, bkz. Bölüm 2.2 |
