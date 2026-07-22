@@ -121,7 +121,7 @@ services:
       retries: 5
       start_period: 10s
 
-  # --- Kisi 1: Identity Service (gateway CP3'te eklenecek) ---------------------------
+  # --- Kisi 1: Identity Service ------------------------------------------------------
   identity-db:
     image: postgres:16-alpine
     environment:
@@ -157,6 +157,34 @@ services:
       retries: 5
       start_period: 10s
 
+  # --- Kisi 1: API Gateway -------------------------------------------------------------
+  gateway:
+    build: ./gateway
+    environment:
+      IDENTITY_SERVICE_URL: http://identity-service:8001
+      INCIDENT_SERVICE_URL: http://incident-service:8002
+      AI_SERVICE_URL: http://ai-service:8003
+      GAMIFICATION_SERVICE_URL: http://gamification-service:8004
+      REDIS_URL: redis://redis:6379/0
+      FRONTEND_ORIGINS: http://localhost:5173,http://localhost:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      identity-service:
+        condition: service_healthy
+      incident-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      gamification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # --- Kisi 3: Frontend ---------------------------------------------------------------
   frontend:
     build:
@@ -165,6 +193,9 @@ services:
         VITE_API_BASE_URL: http://localhost:8000
     ports:
       - "3000:80"
+    depends_on:
+      gateway:
+        condition: service_healthy
 
 volumes:
   incident_data: {}

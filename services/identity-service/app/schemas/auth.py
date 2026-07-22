@@ -86,3 +86,26 @@ class LogoutRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     refresh_token: str
+
+
+class UserUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    role: PersonnelRole | None = None
+    specializations: list[str] | None = None
+    regions: list[str] | None = None
+    is_active: bool | None = None
+    base_lat: float | None = None
+    base_lon: float | None = None
+
+
+class AuditLogEntry(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID | None
+    action_type: str
+    resource_type: str | None
+    resource_id: str | None
+    ip_address: str | None
+    result: str
+    detail: dict | None
+    created_at: str

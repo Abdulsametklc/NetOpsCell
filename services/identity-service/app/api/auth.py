@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit import write_audit_log
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.event_publisher import publish_event
+from app.core.rbac import require_roles
+from app.core.serializers import user_to_public
 from app.core.security import (
     FIXED_OTP_CODE,
     LOCKOUT_MINUTES,
@@ -115,13 +118,16 @@ async def verify_otp(payload: OtpVerifyRequest, db: AsyncSession = Depends(get_d
     access_token, refresh_token = await _issue_token_pair(db, user)
     return ResponseEnvelope(
         success=True,
-        data=TokenResponse(access_token=access_token, refresh_token=refresh_token, user=UserPublic(**user.__dict__)),
+        data=TokenResponse(access_token=access_token, refresh_token=refresh_token, user=user_to_public(user)),
     )
 
 
 @router.post("/personnel", response_model=ResponseEnvelope[UserPublic])
-async def create_personnel(payload: PersonnelCreateRequest, db: AsyncSession = Depends(get_db)):
-    # NOT: RBAC (Depends(require_roles(["ADMIN"]))) TASK_SPLIT.md CP4'te eklenecek.
+async def create_personnel(
+    payload: PersonnelCreateRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_roles(["ADMIN"])),
+):
     existing = (await db.execute(select(User).where(User.email == payload.email))).scalar_one_or_none()
     if existing:
         raise HTTPException(status_code=409, detail={"code": "ALREADY_REGISTERED", "message": "Bu e-posta ile bir hesap zaten var"})
@@ -170,16 +176,21 @@ async def create_personnel(payload: PersonnelCreateRequest, db: AsyncSession = D
             ),
         )
 
-    return ResponseEnvelope(success=True, data=UserPublic(**user.__dict__))
+    return ResponseEnvelope(success=True, data=user_to_public(user))
 
 
 @router.post("/login", response_model=ResponseEnvelope[TokenPair])
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
     now = datetime.now(timezone.utc)
+    ip = request.client.host if request.client else None
 
     if payload.email is not None and payload.password is not None:
         user = (await db.execute(select(User).where(User.email == payload.email))).scalar_one_or_none()
         if not user or not user.password_hash:
+            await write_audit_log(
+                db, user_id=None, action_type="LOGIN_FAILURE", result="FAILURE",
+                ip_address=ip, detail={"email": payload.email},
+            )
             raise HTTPException(status_code=401, detail={"code": "INVALID_CREDENTIALS", "message": "E-posta veya şifre hatalı"})
 
         if user.locked_until and user.locked_until > now:
@@ -195,6 +206,11 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
             if locked_now:
                 user.locked_until = now + timedelta(minutes=LOCKOUT_MINUTES)
             await db.commit()
+            await write_audit_log(
+                db, user_id=user.id,
+                action_type="ACCOUNT_LOCKED" if locked_now else "LOGIN_FAILURE",
+                result="FAILURE", ip_address=ip,
+            )
             if locked_now:
                 raise HTTPException(
                     status_code=423,
@@ -209,6 +225,7 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
         user.failed_login_count = 0
         user.locked_until = None
         await db.commit()
+        await write_audit_log(db, user_id=user.id, action_type="LOGIN_SUCCESS", result="SUCCESS", ip_address=ip)
 
     elif payload.gsm is not None and payload.otp is not None:
         if payload.otp != FIXED_OTP_CODE:
@@ -301,4 +318,4 @@ async def logout(payload: LogoutRequest, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=ResponseEnvelope[UserPublic])
 async def me(current_user: User = Depends(get_current_user)):
-    return ResponseEnvelope(success=True, data=UserPublic(**current_user.__dict__))
+    return ResponseEnvelope(success=True, data=user_to_public(current_user))

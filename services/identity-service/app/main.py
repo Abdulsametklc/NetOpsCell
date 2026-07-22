@@ -3,7 +3,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from app.api.audit import router as audit_router
 from app.api.auth import router as auth_router
+from app.api.internal import router as internal_router
+from app.api.users import router as users_router
 from app.core.database import async_session
 from app.core.seed import seed_admin
 
@@ -17,6 +20,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Identity Service", version="0.1.0", lifespan=lifespan)
 app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(audit_router)
+app.include_router(internal_router)
 
 
 @app.exception_handler(HTTPException)
