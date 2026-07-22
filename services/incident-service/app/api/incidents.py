@@ -1,16 +1,32 @@
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.ai_client import AIServiceUnavailable, predict
+from app.core.ai_client import AIServiceUnavailable, assign, predict
 from app.core.auth import CurrentUser, get_current_user
 from app.core.database import get_db
+from app.core.event_publisher import publish_event
 from app.core.sequence import generate_incident_number
-from app.core.state_machine import InvalidTransition, UnauthorizedTransition, validate_transition
-from app.models.incident import Incident, IncidentStatusHistory, TelemetryReading
-from app.schemas.contracts import FaultType, IncidentStatus, Priority, Suggestion, TelemetryInput
+from app.core.state_machine import (
+    SYSTEM_ACTOR_ID,
+    InvalidTransition,
+    UnauthorizedTransition,
+    validate_transition,
+)
+from app.models.incident import Incident, IncidentResolutionNote, IncidentStatusHistory, TelemetryReading
+from app.schemas.contracts import (
+    AssignRequest,
+    FaultType,
+    IncidentAssigned,
+    IncidentResolved,
+    IncidentStatus,
+    Priority,
+    Suggestion,
+    TelemetryInput,
+)
 from app.schemas.incident import StatusChangeRequest
 
 router = APIRouter(prefix="/api/v1", tags=["incidents"])
@@ -27,6 +43,8 @@ def _incident_summary(incident: Incident) -> dict:
         "probability": incident.probability,
         "ai_suggestion": incident.ai_suggestion,
         "assigned_team_id": str(incident.assigned_team_id) if incident.assigned_team_id else None,
+        "assigned_team_name": incident.assigned_team_name,
+        "resolved_at": incident.resolved_at.isoformat() if incident.resolved_at else None,
         "created_at": incident.created_at.isoformat() if incident.created_at else None,
     }
 
@@ -58,6 +76,63 @@ async def _create_incident(
     return incident
 
 
+async def _attempt_auto_assign(db: AsyncSession, incident: Incident) -> None:
+    """AI Service'in /assign'ini cagirir, uygun ekip bulunursa YENI->ATANDI'ya gecirir ve
+    incident.assigned event'i yayinlar. AI Service'e ulasilamazsa ya da kapasite yoksa vaka
+    YENI/atanmamis kalir - manuel atama kuyruguna duser (bkz. ARCHITECTURE.md SS7)."""
+    try:
+        response = await assign(
+            AssignRequest(
+                incident_id=str(incident.id),
+                incident_number=incident.incident_number,
+                fault_type=incident.fault_type,
+                priority=incident.priority,
+                lat=incident.lat,
+                lng=incident.lng,
+            )
+        )
+    except AIServiceUnavailable:
+        return
+
+    if response.queued or response.team_id is None:
+        return
+
+    validate_transition(
+        from_status=incident.current_status,
+        to_status=IncidentStatus.ATANDI,
+        actor_role="SYSTEM",
+        actor_user_id=SYSTEM_ACTOR_ID,
+        assigned_team_id=incident.assigned_team_id,
+    )
+
+    score = response.score or 0.0
+    history = IncidentStatusHistory(
+        incident_id=incident.id,
+        from_status=incident.current_status,
+        to_status=IncidentStatus.ATANDI,
+        changed_by=SYSTEM_ACTOR_ID,
+        note=f"AI otomatik atama (skor: {score:.2f})",
+    )
+    db.add(history)
+
+    incident.assigned_team_id = uuid.UUID(response.team_id)
+    incident.assigned_team_name = response.team_name
+    incident.current_status = IncidentStatus.ATANDI
+    await db.flush()
+
+    await publish_event(
+        "incident.assigned",
+        IncidentAssigned(
+            incident_id=str(incident.id),
+            team_id=response.team_id,
+            team_name=response.team_name or "",
+            score=score,
+            assigned_by="SYSTEM",
+            assigned_at=datetime.now(timezone.utc),
+        ),
+    )
+
+
 @router.post("/telemetry", status_code=status.HTTP_201_CREATED)
 async def submit_telemetry(payload: TelemetryInput, db: AsyncSession = Depends(get_db)):
     reading = TelemetryReading(
@@ -77,7 +152,7 @@ async def submit_telemetry(payload: TelemetryInput, db: AsyncSession = Depends(g
         prediction = await predict(payload)
     except AIServiceUnavailable:
         # Case kurali: AI Service'e ulasilamiyorsa vaka yine de acilir (BELIRSIZ/ORTA) ve
-        # manuel atama kuyruguna duser (assigned_team_id null kaldigi surece kuyrukta sayilir).
+        # manuel atama kuyruguna duser (atama denemesi bile yapilmaz - tur bilinmiyor).
         incident = await _create_incident(
             db,
             reading,
@@ -120,6 +195,7 @@ async def submit_telemetry(payload: TelemetryInput, db: AsyncSession = Depends(g
         probability=prediction.probability,
         ai_suggestion=prediction.suggestion,
     )
+    await _attempt_auto_assign(db, incident)
     await db.commit()
     await db.refresh(incident)
     return {
@@ -187,8 +263,12 @@ async def change_status(
             detail={"code": "UNAUTHORIZED_TRANSITION", "message": str(exc)},
         ) from exc
 
-    # NOT (CP4): COZULDU icin cozum notu zorunlulugu + incident.resolved event yayini
-    # burada eklenecek (bkz. TASK_SPLIT.md Kisi 2 gorev listesi).
+    if payload.to_status == IncidentStatus.COZULDU and not (payload.note and payload.note.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "RESOLUTION_NOTE_REQUIRED", "message": "COZULDU icin cozum notu zorunludur"},
+        )
+
     history = IncidentStatusHistory(
         incident_id=incident.id,
         from_status=incident.current_status,
@@ -197,8 +277,35 @@ async def change_status(
         note=payload.note,
     )
     db.add(history)
+
     incident.current_status = payload.to_status
+
+    if payload.to_status == IncidentStatus.COZULDU:
+        resolved_at = datetime.now(timezone.utc)
+        incident.resolved_at = resolved_at
+        db.add(
+            IncidentResolutionNote(
+                incident_id=incident.id,
+                technician_id=current_user.user_id,
+                note=payload.note,
+            )
+        )
+
+    await db.flush()
     await db.commit()
     await db.refresh(incident)
+
+    if payload.to_status == IncidentStatus.COZULDU:
+        await publish_event(
+            "incident.resolved",
+            IncidentResolved(
+                incident_id=str(incident.id),
+                team_id=str(incident.assigned_team_id),
+                fault_type=incident.fault_type,
+                priority=incident.priority,
+                created_at=incident.created_at,
+                resolved_at=incident.resolved_at,
+            ),
+        )
 
     return {"success": True, "data": _incident_summary(incident), "error": None}

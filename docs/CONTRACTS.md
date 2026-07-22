@@ -174,6 +174,7 @@ class IncidentCreated(BaseModel):
     probability: float
     created_at: datetime
 
+# CP4: incident-service ve ai-service arasinda uygulandi (asagidaki tanim ile birebir).
 class IncidentAssigned(BaseModel):
     event_type: Literal["incident.assigned"] = "incident.assigned"
     incident_id: str

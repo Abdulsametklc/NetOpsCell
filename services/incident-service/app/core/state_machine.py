@@ -2,6 +2,10 @@ import uuid
 
 from app.schemas.contracts import IncidentStatus
 
+# Otomatik (AI/scheduler tetikli) gecislerde gercek bir insan aktoru olmadigi icin sabit bir
+# sentinel UUID kullanilir (audit/status_history alanlarinda "SYSTEM" rolunun kim'i olarak).
+SYSTEM_ACTOR_ID = uuid.UUID("00000000-0000-0000-0000-000000000000")
+
 # Kaynak: ARCHITECTURE.md SS4.2.1 (case Bolum 4.2 durum makinesi tablosunun birebir uygulanmasi).
 # "SYSTEM" gercek bir kullanici rolu degil; AI'in otomatik atamasi veya arka plan gorevlerinin
 # (parca tedariki, 24 saat sonra otomatik kapanma) bu gecisleri tetiklemesi icin kullanilan
