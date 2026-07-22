@@ -92,6 +92,16 @@ class AssignResponse(BaseModel):
     components: ScoreComponents | None = None
 
 
+class IncidentAssigned(BaseModel):
+    event_type: Literal["incident.assigned"] = "incident.assigned"
+    incident_id: str
+    team_id: str
+    team_name: str
+    score: float
+    assigned_by: str
+    assigned_at: datetime
+
+
 class IncidentResolved(BaseModel):
     event_type: Literal["incident.resolved"] = "incident.resolved"
     incident_id: str

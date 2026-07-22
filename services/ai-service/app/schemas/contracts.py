@@ -55,3 +55,26 @@ class PredictResponse(BaseModel):
     suggestion: Suggestion
     method: PredictionMethod
     confidence_explanation: str
+
+
+class ScoreComponents(BaseModel):
+    uzmanlik_eslesme: float
+    mesafe_yakinlik: float
+    bosluk_orani: float
+
+
+class AssignRequest(BaseModel):
+    incident_id: str
+    incident_number: str
+    fault_type: FaultType
+    priority: Priority
+    lat: float
+    lng: float
+
+
+class AssignResponse(BaseModel):
+    queued: bool
+    team_id: str | None = None
+    team_name: str | None = None
+    score: float | None = None
+    components: ScoreComponents | None = None

@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     service_name: str = "ai-service"
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5434/ai_db"
+    redis_url: str = "redis://localhost:6379/0"
 
     anthropic_api_key: str | None = None
     anthropic_model: str = "claude-sonnet-5"
