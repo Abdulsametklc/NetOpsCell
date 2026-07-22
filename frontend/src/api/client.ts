@@ -112,9 +112,24 @@ export async function apiFetch<T>(
 
   let envelope: ResponseEnvelope<T>
   try {
-    envelope = (await res.json()) as ResponseEnvelope<T>
-  } catch {
-    throw new ApiError(`Invalid JSON from ${url || path}`, res.status)
+    const text = await res.text()
+    if (!text) {
+      throw new ApiError(
+        `Boş cevap (${res.status}). Servis kapalı olabilir — docker compose up veya mock aç.`,
+        res.status,
+      )
+    }
+    try {
+      envelope = JSON.parse(text) as ResponseEnvelope<T>
+    } catch {
+      throw new ApiError(
+        `JSON değil (HTTP ${res.status}). Proxy/servis hatası — incident:8002 / game:8004 ayakta mı?`,
+        res.status,
+      )
+    }
+  } catch (err) {
+    if (err instanceof ApiError) throw err
+    throw new ApiError(`İstek başarısız: ${url || path}`, res.status)
   }
 
   const expired =
