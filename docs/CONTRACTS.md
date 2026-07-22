@@ -51,6 +51,7 @@ class PowerStatus(str, Enum):
 
 class PredictionMethod(str, Enum):
     LLM = "LLM"
+    ML_MODEL = "ML_MODEL"
     RULE_FALLBACK = "RULE_FALLBACK"
 ```
 
@@ -88,7 +89,7 @@ class PredictResponse(BaseModel):
     fault_type: FaultType
     priority: Priority
     suggestion: Suggestion
-    method: PredictionMethod          # "LLM" ya da "RULE_FALLBACK" — hangi yol devrede olduğunun şeffaflığı
+    method: PredictionMethod          # "LLM" / "ML_MODEL" / "RULE_FALLBACK" — hangi yol devrede olduğunun şeffaflığı
     confidence_explanation: str       # LLM'in/kuralın kısa gerekçesi (Türkçe, 1-2 cümle)
 ```
 
@@ -96,7 +97,7 @@ class PredictResponse(BaseModel):
 
 | Durum | AI Service Davranışı | Incident Service'in Yapması Gereken |
 |---|---|---|
-| LLM sağlayıcısı zaman aşımı/hata | İçeride otomatik `RULE_FALLBACK`'e düşer, yine `200 OK` + geçerli `PredictResponse` döner | Hiçbir şey — cevap her koşulda gelir |
+| LLM sağlayıcısı zaman aşımı/hata | İçeride otomatik eğitilmiş ML modeli fallback'ine (`ML_MODEL`) düşer, yine `200 OK` + geçerli `PredictResponse` döner | Hiçbir şey — cevap her koşulda gelir |
 | AI Service'in kendisi ulaşılamıyor (bağlantı hatası / 2sn timeout) | — | `fault_type=BELIRSIZ`, `priority=ORTA` ile vaka oluştur, manuel atama kuyruğuna ekle |
 | Geçersiz istek gövdesi | `422` + `ResponseEnvelope` hata şekli | Telemetri girdisini loglayıp isteği reddet (bu normalde hiç olmamalı, Incident Service kendi tarafında da aynı Pydantic modeliyle doğrular) |
 

@@ -13,7 +13,7 @@
 | Veritabanı | **PostgreSQL 16**, servis başına ayrı container + ayrı volume | Database-per-service kuralı zorunlu; tek DB engine kullanmak takımın öğrenme eğrisini düşürür. |
 | Event Bus | **Redis 7** — Streams (consumer groups) + Pub/Sub karışımı | Bonus kriterinde adı geçen teknoloji; RabbitMQ/Kafka'ya göre kurulum yükü çok düşük. Redis Streams, event'lerin kalıcı ve tekrar okunabilir olmasını sağlar (aşağıda gerekçesi var). |
 | API Gateway | **Kendi yazdığımız FastAPI reverse-proxy** (httpx tabanlı) | Stack'i tek dilde tutar; JWT doğrulama + rate limiting + routing kendi kodumuzda, Kong gibi ek bir altyapı öğrenmeye gerek yok. |
-| AI yaklaşımı | **(c) LLM API entegrasyonu** (Anthropic Claude, structured output / tool use) + deterministik kural tabanlı fallback | Kullanıcının tercihi. Aşağıda Bölüm 8'de tüm detay var. Not: Bu seçim, kendi eğitilmiş ML modeli bonusunu (+8) hedeflemez; onun yerine mesaj kuyruğu (+5), kategori bazlı doğruluk kırılımı (+3) ve gerçek zamanlı bildirim (+2) bonuslarına odaklanılır. |
+| AI yaklaşımı | **(c) LLM API entegrasyonu** (Anthropic Claude, structured output / tool use) + kendi eğittiğimiz ML modeli (RandomForestClassifier, fallback yolu) | Kullanıcının tercihi. Aşağıda Bölüm 8'de tüm detay var. LLM birincil yol; LLM'e ulaşılamadığında devreye giren fallback artık deterministik if/else değil, `docs/sample_telemetry.json`'daki 122 etiketli örnekle eğitilmiş gerçek bir sınıflandırıcı (+8 bonus — bkz. `docs/ai-approach.md` §7). Ayrıca mesaj kuyruğu (+5), kategori bazlı doğruluk kırılımı (+3) ve gerçek zamanlı bildirim (+2) bonusları da hedefleniyor. |
 | Frontend | **React 18 + Vite + TypeScript + TailwindCSS + React Query + Zustand** | "Basit web frontend" hedefiyle uyumlu, hızlı kurulan, tek sayfa uygulaması. |
 | Deployment | **Docker Compose**, tek `docker compose up` | Zorunlu kural. |
 
@@ -780,13 +780,13 @@ networks:
 
 | Bonus | Nasıl Karşılanıyor |
 |---|---|
-| Kendi eğitilmiş ML modeli (+8) | **Hedeflenmiyor** — LLM yaklaşımı tercih edildiği için bu bonus kapsam dışı (bilinçli tradeoff). |
+| Kendi eğitilmiş ML modeli (+8) | **Karşılanıyor** — `services/ai-service/app/ml/train_model.py`, `docs/sample_telemetry.json`'daki 122 etiketli örnekle 4 algoritma (LogisticRegression, SVM, RandomForest, GradientBoosting) `GridSearchCV` ile hiperparametre araması yapılıp sızıntısız 5-fold CV ile karşılaştırıldı; SVM (C=1.0, gamma=1.0) en iyi çıktı (hiç görülmemiş holdout doğruluğu %88, ayrıca eğitim verisinde hiç geçmeyen elle yazılmış sentetik verilerle de %83.3 doğrulandı). LLM'e ulaşılamadığında birincil fallback yolu. **Tam detaylı süreç dokümantasyonu: `docs/ml-model.md`** (özet: `docs/ai-approach.md` §7.1). |
 | Message queue ile event iletimi (+5) | Redis Streams tabanlı tam event-driven mimari (Bölüm 6) |
 | Kategori bazlı AI doğruluk kırılımı (+3) | `GET /ai/accuracy?breakdown=category` (Bölüm 8.8) |
 | Gerçek zamanlı bildirim WS/SSE (+2) | Gateway Notification Hub (Bölüm 5) |
 | CI/CD pipeline (+2) | GitHub Actions: her push'ta 4 servis için lint+test+docker build matrix job'u önerilir (kapsam dışına düşerse en azından test job'u eklenmeli) |
 
-**Gerçekçi hedef:** +10/+20 (mesaj kuyruğu +5, kategori kırılımı +3, WS bildirim +2), CI/CD eklenirse +12.
+**Gerçekçi hedef:** +18/+20 (ML modeli +8, mesaj kuyruğu +5, kategori kırılımı +3, WS bildirim +2), CI/CD eklenirse +20.
 
 ---
 

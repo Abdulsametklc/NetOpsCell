@@ -1,0 +1,1964 @@
+{
+  "meta": {
+    "description": "NetOpsCell AI Service icin gercekci Turkce telemetri ornekleri - seed/demo verisi + LLM few-shot baglami + kural tabanli fallback kalibrasyonu icin kullanilir (bkz. docs/ai-approach.md SS7).",
+    "count": 122,
+    "label_fields": {
+      "fault_type": "DONANIM | GUC_KESINTISI | BAGLANTI | YAZILIM | ISINMA | BELIRSIZ - beklenen/etiketlenen ariza turu",
+      "severity": "NORMAL | IZLENMELI | ARIZALI | KRITIK - kaba nitel siddet etiketi (kesin olasilik degeri degil, LLM/kural motoru kendi olasiligini hesaplar)"
+    }
+  },
+  "samples": [
+    {
+      "id": 1,
+      "station_code": "ANK-0660",
+      "lat": 40.111,
+      "lng": 33.1737,
+      "signal_strength": -120.2,
+      "packet_loss": 16.6,
+      "temperature": 21.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Zayıf sinyal seviyesi nedeniyle çağrı düşüşleri raporlanıyor.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 2,
+      "station_code": "ANK-5121",
+      "lat": 39.8817,
+      "lng": 32.9746,
+      "signal_strength": -117.5,
+      "packet_loss": 30.3,
+      "temperature": 96.2,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 2,
+      "description": "Sıcaklık hızla yükseliyor + paket kaybı artıyor, acil müdahale gerekebilir.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 3,
+      "station_code": "BUR-1236",
+      "lat": 40.1432,
+      "lng": 29.3199,
+      "signal_strength": -68.5,
+      "packet_loss": 0.2,
+      "temperature": 38.0,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Rutin kontrol: herhangi bir anomali tespit edilmedi.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 4,
+      "station_code": "KON-9563",
+      "lat": 37.9197,
+      "lng": 32.3645,
+      "signal_strength": -77.2,
+      "packet_loss": 2.7,
+      "temperature": 22.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal gücü iyi seviyede, güç kaynağı stabil.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 5,
+      "station_code": "TRA-9778",
+      "lat": 40.8531,
+      "lng": 39.4434,
+      "signal_strength": -89.2,
+      "packet_loss": 6.1,
+      "temperature": 22.3,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 0,
+      "description": "Elektrik kesintisi sonrası istasyon batarya ile ayakta duruyor.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 6,
+      "station_code": "IST-0894",
+      "lat": 41.0524,
+      "lng": 29.1172,
+      "signal_strength": -91.2,
+      "packet_loss": 17.6,
+      "temperature": 29.8,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Güç kaynağında dalgalanma, kesinti riski yüksek.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 7,
+      "station_code": "ADA-8743",
+      "lat": 36.916,
+      "lng": 35.1927,
+      "signal_strength": -73.4,
+      "packet_loss": 14.4,
+      "temperature": 46.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 2,
+      "description": "Ekipmanda tekrarlayan hata kodları görülüyor, donanım yorgunluğu şüphesi.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 8,
+      "station_code": "ADA-0345",
+      "lat": 37.0618,
+      "lng": 35.1321,
+      "signal_strength": -78.4,
+      "packet_loss": 0.3,
+      "temperature": 29.5,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal stabil, sıcaklık normal, paket kaybı yok.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 9,
+      "station_code": "ANT-2859",
+      "lat": 36.6239,
+      "lng": 30.9695,
+      "signal_strength": -122.4,
+      "packet_loss": 37.5,
+      "temperature": 93.1,
+      "power_status": "NORMAL",
+      "recent_fault_count": 2,
+      "description": "Güç kesintisi ile birlikte sinyal tamamen kayboldu.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 10,
+      "station_code": "ANK-8728",
+      "lat": 40.1191,
+      "lng": 32.5989,
+      "signal_strength": -70.7,
+      "packet_loss": 2.2,
+      "temperature": 21.1,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Rutin kontrol: herhangi bir anomali tespit edilmedi.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 11,
+      "station_code": "IST-7452",
+      "lat": 40.7266,
+      "lng": 28.8057,
+      "signal_strength": -91.5,
+      "packet_loss": 14.6,
+      "temperature": 45.9,
+      "power_status": "NORMAL",
+      "recent_fault_count": 5,
+      "description": "Donanım bileşenlerinden birinde tekrarlayan hata sinyali.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 12,
+      "station_code": "TRA-2427",
+      "lat": 40.9559,
+      "lng": 39.4023,
+      "signal_strength": -79.1,
+      "packet_loss": 11.2,
+      "temperature": 94.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Kabin içi sıcaklık kritik seviyeye yaklaşıyor, fan sesi anormal.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 13,
+      "station_code": "ERZ-0321",
+      "lat": 40.1547,
+      "lng": 41.4629,
+      "signal_strength": -115.9,
+      "packet_loss": 16.2,
+      "temperature": 25.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Yüksek paket kaybı ile birlikte gecikme artışı var.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 14,
+      "station_code": "SAM-5086",
+      "lat": 41.0862,
+      "lng": 36.1194,
+      "signal_strength": -89.3,
+      "packet_loss": 2.9,
+      "temperature": 79.8,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Öğle saatlerinde sıcaklık aşırı yükseliyor, gece normale dönüyor.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 15,
+      "station_code": "KON-0229",
+      "lat": 37.7091,
+      "lng": 32.2295,
+      "signal_strength": -72.6,
+      "packet_loss": 4.5,
+      "temperature": 23.9,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "İstasyon periyodik olarak kendiliğinden yeniden başlıyor.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 16,
+      "station_code": "GAZ-0607",
+      "lat": 36.8044,
+      "lng": 37.7087,
+      "signal_strength": -85.0,
+      "packet_loss": 4.5,
+      "temperature": 45.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 5,
+      "description": "Aynı istasyonda kısa aralıklarla tekrarlayan arıza kayıtları var.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 17,
+      "station_code": "ERZ-6210",
+      "lat": 39.7905,
+      "lng": 41.273,
+      "signal_strength": -117.2,
+      "packet_loss": 30.1,
+      "temperature": 25.8,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Paket kaybı oranı beklenenin çok üzerinde, hat kalitesi bozuk.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 18,
+      "station_code": "VAN-7145",
+      "lat": 38.1452,
+      "lng": 43.6809,
+      "signal_strength": -73.8,
+      "packet_loss": 8.6,
+      "temperature": 87.5,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Öğle saatlerinde sıcaklık aşırı yükseliyor, gece normale dönüyor.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 19,
+      "station_code": "IZM-9044",
+      "lat": 38.1255,
+      "lng": 26.7939,
+      "signal_strength": -81.5,
+      "packet_loss": 12.7,
+      "temperature": 25.0,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Elektrik kesintisi sonrası istasyon batarya ile ayakta duruyor.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 20,
+      "station_code": "ERZ-0804",
+      "lat": 40.1924,
+      "lng": 41.4486,
+      "signal_strength": -63.3,
+      "packet_loss": 5.4,
+      "temperature": 31.6,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Konfigürasyon senkronizasyonunda tutarsızlık gözlemleniyor, donanım metrikleri normal.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 21,
+      "station_code": "VAN-3979",
+      "lat": 38.2153,
+      "lng": 43.5737,
+      "signal_strength": -104.6,
+      "packet_loss": 33.4,
+      "temperature": 20.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Yüksek paket kaybı ile birlikte gecikme artışı var.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 22,
+      "station_code": "IZM-4340",
+      "lat": 38.1707,
+      "lng": 27.3135,
+      "signal_strength": -68.8,
+      "packet_loss": 3.0,
+      "temperature": 24.9,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Rutin kontrol: herhangi bir anomali tespit edilmedi.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 23,
+      "station_code": "ANT-9910",
+      "lat": 36.6944,
+      "lng": 30.603,
+      "signal_strength": -69.4,
+      "packet_loss": 10.2,
+      "temperature": 80.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sıcaklık hızla yükseliyor, soğutma sistemi yetersiz kalıyor gibi görünüyor.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 24,
+      "station_code": "GAZ-1270",
+      "lat": 37.2155,
+      "lng": 37.1971,
+      "signal_strength": -116.9,
+      "packet_loss": 41.9,
+      "temperature": 19.8,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal aralıklı olarak kopuyor, anten hizalaması bozulmuş olabilir.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 25,
+      "station_code": "KON-6072",
+      "lat": 37.5723,
+      "lng": 32.5963,
+      "signal_strength": -124.7,
+      "packet_loss": 28.2,
+      "temperature": 28.8,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Zayıf sinyal seviyesi nedeniyle çağrı düşüşleri raporlanıyor.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 26,
+      "station_code": "ANK-4809",
+      "lat": 39.8873,
+      "lng": 32.8266,
+      "signal_strength": -56.4,
+      "packet_loss": 3.5,
+      "temperature": 21.1,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "İstasyon son 24 saattir stabil çalışıyor, arıza kaydı yok.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 27,
+      "station_code": "VAN-9708",
+      "lat": 38.3319,
+      "lng": 43.6292,
+      "signal_strength": -105.1,
+      "packet_loss": 18.5,
+      "temperature": 37.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Yüksek paket kaybı ile birlikte gecikme artışı var.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 28,
+      "station_code": "TRA-7936",
+      "lat": 40.8966,
+      "lng": 39.7593,
+      "signal_strength": -78.7,
+      "packet_loss": 9.8,
+      "temperature": 29.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 3,
+      "description": "İstasyon kısa süre önce onarıldı ama arıza tekrar etti.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 29,
+      "station_code": "GAZ-6079",
+      "lat": 37.1853,
+      "lng": 37.5532,
+      "signal_strength": -61.1,
+      "packet_loss": 2.5,
+      "temperature": 31.1,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "İstasyon periyodik olarak kendiliğinden yeniden başlıyor.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 30,
+      "station_code": "ANK-7674",
+      "lat": 40.257,
+      "lng": 32.6075,
+      "signal_strength": -60.7,
+      "packet_loss": 5.2,
+      "temperature": 30.9,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "İstasyon periyodik olarak kendiliğinden yeniden başlıyor.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 31,
+      "station_code": "VAN-4845",
+      "lat": 38.5321,
+      "lng": 43.1673,
+      "signal_strength": -70.1,
+      "packet_loss": 4.5,
+      "temperature": 87.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Öğle saatlerinde sıcaklık aşırı yükseliyor, gece normale dönüyor.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 32,
+      "station_code": "BUR-0388",
+      "lat": 40.295,
+      "lng": 28.9959,
+      "signal_strength": -81.6,
+      "packet_loss": 0.8,
+      "temperature": 88.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Sıcaklık sensörü sürekli yüksek değer okuyor, havalandırma kontrol edilmeli.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 33,
+      "station_code": "SAM-9087",
+      "lat": 41.1386,
+      "lng": 36.4444,
+      "signal_strength": -56.8,
+      "packet_loss": 0.5,
+      "temperature": 17.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "İstasyon son 24 saattir stabil çalışıyor, arıza kaydı yok.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 34,
+      "station_code": "IST-1536",
+      "lat": 40.818,
+      "lng": 28.9827,
+      "signal_strength": -84.2,
+      "packet_loss": 0.8,
+      "temperature": 29.9,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Standart trafik yükü altında normal performans.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 35,
+      "station_code": "SAM-9432",
+      "lat": 41.0651,
+      "lng": 36.4674,
+      "signal_strength": -75.2,
+      "packet_loss": 2.9,
+      "temperature": 85.0,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Öğle saatlerinde sıcaklık aşırı yükseliyor, gece normale dönüyor.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 36,
+      "station_code": "ERZ-4558",
+      "lat": 40.1216,
+      "lng": 40.9315,
+      "signal_strength": -60.8,
+      "packet_loss": 2.8,
+      "temperature": 22.8,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal ve sıcaklık normal, hafif dalgalanma var ama eşik altında.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 37,
+      "station_code": "VAN-8042",
+      "lat": 38.4577,
+      "lng": 43.0451,
+      "signal_strength": -86.2,
+      "packet_loss": 9.3,
+      "temperature": 23.8,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Şebeke gücü kesildi, jeneratör devreye girmedi.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 38,
+      "station_code": "ANK-9045",
+      "lat": 39.7882,
+      "lng": 32.949,
+      "signal_strength": -58.4,
+      "packet_loss": 1.4,
+      "temperature": 19.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Rutin kontrol: herhangi bir anomali tespit edilmedi.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 39,
+      "station_code": "IZM-6659",
+      "lat": 38.4129,
+      "lng": 26.9416,
+      "signal_strength": -73.0,
+      "packet_loss": 0.2,
+      "temperature": 23.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Standart trafik yükü altında normal performans.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 40,
+      "station_code": "IZM-6756",
+      "lat": 38.0904,
+      "lng": 27.3076,
+      "signal_strength": -80.0,
+      "packet_loss": 11.2,
+      "temperature": 89.3,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Kabin içi sıcaklık kritik seviyeye yaklaşıyor, fan sesi anormal.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 41,
+      "station_code": "VAN-7008",
+      "lat": 38.5366,
+      "lng": 43.1113,
+      "signal_strength": -61.6,
+      "packet_loss": 8.3,
+      "temperature": 70.3,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Ekipman aşırı ısınıyor, termal koruma devreye girebilir.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 42,
+      "station_code": "VAN-3156",
+      "lat": 38.3649,
+      "lng": 43.553,
+      "signal_strength": -66.5,
+      "packet_loss": 14.4,
+      "temperature": 22.6,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Şebeke gücü kesildi, jeneratör devreye girmedi.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 43,
+      "station_code": "ERZ-0987",
+      "lat": 39.9817,
+      "lng": 41.4451,
+      "signal_strength": -66.6,
+      "packet_loss": 5.7,
+      "temperature": 23.1,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 0,
+      "description": "Ana güç hattında kesinti var, batarya seviyesi düşüyor.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 44,
+      "station_code": "IST-9490",
+      "lat": 41.18,
+      "lng": 28.6717,
+      "signal_strength": -75.6,
+      "packet_loss": 0.2,
+      "temperature": 26.0,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Tüm metrikler beklenen aralıkta, istasyon sorunsuz çalışıyor.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 45,
+      "station_code": "ANK-7680",
+      "lat": 40.0651,
+      "lng": 32.9988,
+      "signal_strength": -66.7,
+      "packet_loss": 11.0,
+      "temperature": 29.9,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 0,
+      "description": "Güç kaynağında dalgalanma, kesinti riski yüksek.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 46,
+      "station_code": "GAZ-0547",
+      "lat": 37.1217,
+      "lng": 37.5457,
+      "signal_strength": -78.2,
+      "packet_loss": 1.8,
+      "temperature": 31.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Konfigürasyon senkronizasyonunda tutarsızlık gözlemleniyor, donanım metrikleri normal.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 47,
+      "station_code": "KON-9934",
+      "lat": 37.9413,
+      "lng": 32.5759,
+      "signal_strength": -71.7,
+      "packet_loss": 8.8,
+      "temperature": 39.8,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Elektrik kesintisi sonrası istasyon batarya ile ayakta duruyor.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 48,
+      "station_code": "SAM-6940",
+      "lat": 41.5095,
+      "lng": 36.0109,
+      "signal_strength": -80.0,
+      "packet_loss": 1.6,
+      "temperature": 94.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Ekipman aşırı ısınıyor, termal koruma devreye girebilir.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 49,
+      "station_code": "ANK-9482",
+      "lat": 39.601,
+      "lng": 32.7274,
+      "signal_strength": -108.7,
+      "packet_loss": 43.8,
+      "temperature": 26.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Yüksek paket kaybı ile birlikte gecikme artışı var.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 50,
+      "station_code": "KON-4423",
+      "lat": 38.2167,
+      "lng": 32.591,
+      "signal_strength": -68.3,
+      "packet_loss": 2.7,
+      "temperature": 34.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal stabil, sıcaklık normal, paket kaybı yok.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 51,
+      "station_code": "ERZ-6687",
+      "lat": 40.2123,
+      "lng": 41.1228,
+      "signal_strength": -111.2,
+      "packet_loss": 32.6,
+      "temperature": 85.2,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 3,
+      "description": "Sıcaklık hızla yükseliyor + paket kaybı artıyor, acil müdahale gerekebilir.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 52,
+      "station_code": "SAM-3831",
+      "lat": 41.259,
+      "lng": 36.4137,
+      "signal_strength": -61.1,
+      "packet_loss": 2.0,
+      "temperature": 29.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Yazılım günlüklerinde tekrarlayan istisna kayıtları var, sinyal/sıcaklık normal.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 53,
+      "station_code": "VAN-5108",
+      "lat": 38.4233,
+      "lng": 43.5032,
+      "signal_strength": -73.8,
+      "packet_loss": 3.6,
+      "temperature": 25.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Tüm metrikler beklenen aralıkta, istasyon sorunsuz çalışıyor.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 54,
+      "station_code": "SAM-9034",
+      "lat": 41.4336,
+      "lng": 36.1305,
+      "signal_strength": -116.0,
+      "packet_loss": 33.0,
+      "temperature": 82.8,
+      "power_status": "NORMAL",
+      "recent_fault_count": 3,
+      "description": "Hem donanım hem bağlantı metrikleri kritik eşiklerin üzerinde.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 55,
+      "station_code": "SAM-6690",
+      "lat": 41.0107,
+      "lng": 36.0117,
+      "signal_strength": -79.3,
+      "packet_loss": 6.0,
+      "temperature": 21.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Uzaktan yönetim arayüzü aralıklı olarak yanıt vermiyor.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 56,
+      "station_code": "VAN-7778",
+      "lat": 38.459,
+      "lng": 43.5592,
+      "signal_strength": -104.8,
+      "packet_loss": 24.0,
+      "temperature": 35.1,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Paket kaybı oranı beklenenin çok üzerinde, hat kalitesi bozuk.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 57,
+      "station_code": "SAM-3116",
+      "lat": 41.3636,
+      "lng": 36.4544,
+      "signal_strength": -65.6,
+      "packet_loss": 4.0,
+      "temperature": 32.6,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Yazılım günlüklerinde tekrarlayan istisna kayıtları var, sinyal/sıcaklık normal.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 58,
+      "station_code": "BUR-1859",
+      "lat": 40.156,
+      "lng": 28.7992,
+      "signal_strength": -70.0,
+      "packet_loss": 10.5,
+      "temperature": 41.5,
+      "power_status": "NORMAL",
+      "recent_fault_count": 5,
+      "description": "Donanım bileşenlerinden birinde tekrarlayan hata sinyali.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 59,
+      "station_code": "SAM-8318",
+      "lat": 41.3553,
+      "lng": 36.087,
+      "signal_strength": -62.1,
+      "packet_loss": 2.2,
+      "temperature": 32.9,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Standart trafik yükü altında normal performans.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 60,
+      "station_code": "IST-2077",
+      "lat": 41.1842,
+      "lng": 28.9973,
+      "signal_strength": -110.1,
+      "packet_loss": 41.7,
+      "temperature": 92.9,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 3,
+      "description": "Tekrarlayan arıza geçmişi + güncel güç kesintisi, yüksek risk.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 61,
+      "station_code": "TRA-5995",
+      "lat": 41.0266,
+      "lng": 40.0124,
+      "signal_strength": -63.4,
+      "packet_loss": 1.5,
+      "temperature": 32.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Yazılım günlüklerinde tekrarlayan istisna kayıtları var, sinyal/sıcaklık normal.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 62,
+      "station_code": "TRA-5426",
+      "lat": 41.3125,
+      "lng": 39.4537,
+      "signal_strength": -60.9,
+      "packet_loss": 2.1,
+      "temperature": 93.9,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sıcaklık hızla yükseliyor, soğutma sistemi yetersiz kalıyor gibi görünüyor.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 63,
+      "station_code": "IZM-1123",
+      "lat": 38.4895,
+      "lng": 27.2646,
+      "signal_strength": -77.9,
+      "packet_loss": 0.5,
+      "temperature": 35.5,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Tüm metrikler beklenen aralıkta, istasyon sorunsuz çalışıyor.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 64,
+      "station_code": "TRA-4346",
+      "lat": 40.7477,
+      "lng": 39.6173,
+      "signal_strength": -82.9,
+      "packet_loss": 1.0,
+      "temperature": 21.6,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal stabil, sıcaklık normal, paket kaybı yok.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 65,
+      "station_code": "ANT-1308",
+      "lat": 37.1457,
+      "lng": 30.9695,
+      "signal_strength": -73.6,
+      "packet_loss": 1.8,
+      "temperature": 34.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal ve sıcaklık normal, hafif dalgalanma var ama eşik altında.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 66,
+      "station_code": "VAN-2362",
+      "lat": 38.431,
+      "lng": 43.4913,
+      "signal_strength": -90.4,
+      "packet_loss": 10.0,
+      "temperature": 49.1,
+      "power_status": "NORMAL",
+      "recent_fault_count": 5,
+      "description": "Aynı istasyonda kısa aralıklarla tekrarlayan arıza kayıtları var.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 67,
+      "station_code": "TRA-3684",
+      "lat": 41.1083,
+      "lng": 40.0089,
+      "signal_strength": -70.2,
+      "packet_loss": 3.3,
+      "temperature": 22.0,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Güç kaynağında dalgalanma, kesinti riski yüksek.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 68,
+      "station_code": "VAN-1772",
+      "lat": 38.4118,
+      "lng": 43.0601,
+      "signal_strength": -75.9,
+      "packet_loss": 2.4,
+      "temperature": 92.6,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Kabin içi sıcaklık kritik seviyeye yaklaşıyor, fan sesi anormal.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 69,
+      "station_code": "GAZ-7217",
+      "lat": 36.9545,
+      "lng": 37.7088,
+      "signal_strength": -87.4,
+      "packet_loss": 17.5,
+      "temperature": 20.7,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Güç kaynağında dalgalanma, kesinti riski yüksek.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 70,
+      "station_code": "SAM-7023",
+      "lat": 41.024,
+      "lng": 36.3032,
+      "signal_strength": -123.8,
+      "packet_loss": 27.0,
+      "temperature": 22.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Sinyal aralıklı olarak kopuyor, anten hizalaması bozulmuş olabilir.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 71,
+      "station_code": "ERZ-0711",
+      "lat": 40.0641,
+      "lng": 41.5631,
+      "signal_strength": -111.8,
+      "packet_loss": 35.6,
+      "temperature": 89.8,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 2,
+      "description": "Hem donanım hem bağlantı metrikleri kritik eşiklerin üzerinde.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 72,
+      "station_code": "IST-1833",
+      "lat": 41.3154,
+      "lng": 29.2441,
+      "signal_strength": -60.1,
+      "packet_loss": 1.2,
+      "temperature": 16.3,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Standart trafik yükü altında normal performans.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 73,
+      "station_code": "ERZ-4527",
+      "lat": 39.9441,
+      "lng": 41.2886,
+      "signal_strength": -120.4,
+      "packet_loss": 23.0,
+      "temperature": 26.9,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Zayıf sinyal seviyesi nedeniyle çağrı düşüşleri raporlanıyor.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 74,
+      "station_code": "GAZ-1748",
+      "lat": 36.882,
+      "lng": 37.4333,
+      "signal_strength": -68.5,
+      "packet_loss": 6.0,
+      "temperature": 24.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "İstasyon periyodik olarak kendiliğinden yeniden başlıyor.",
+      "label": {
+        "fault_type": "YAZILIM",
+        "severity": "IZLENMELI"
+      }
+    },
+    {
+      "id": 75,
+      "station_code": "IST-2871",
+      "lat": 40.9944,
+      "lng": 29.0851,
+      "signal_strength": -67.5,
+      "packet_loss": 5.3,
+      "temperature": 32.0,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 0,
+      "description": "Güç kaynağında dalgalanma, kesinti riski yüksek.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 76,
+      "station_code": "IZM-3805",
+      "lat": 38.3958,
+      "lng": 26.9698,
+      "signal_strength": -87.3,
+      "packet_loss": 3.1,
+      "temperature": 44.1,
+      "power_status": "NORMAL",
+      "recent_fault_count": 3,
+      "description": "Aynı istasyonda kısa aralıklarla tekrarlayan arıza kayıtları var.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 77,
+      "station_code": "IST-3074",
+      "lat": 41.0279,
+      "lng": 29.0648,
+      "signal_strength": -80.0,
+      "packet_loss": 9.6,
+      "temperature": 21.5,
+      "power_status": "NORMAL",
+      "recent_fault_count": 3,
+      "description": "Son günlerde bu istasyonda birden fazla kesinti kaydı oluştu.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 78,
+      "station_code": "GAZ-2507",
+      "lat": 37.0208,
+      "lng": 37.5467,
+      "signal_strength": -101.8,
+      "packet_loss": 23.8,
+      "temperature": 35.8,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Sinyal aralıklı olarak kopuyor, anten hizalaması bozulmuş olabilir.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 79,
+      "station_code": "SAM-6625",
+      "lat": 41.4359,
+      "lng": 36.5684,
+      "signal_strength": -102.9,
+      "packet_loss": 44.4,
+      "temperature": 29.8,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal gücü ciddi şekilde düşük, paket kaybı artıyor.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 80,
+      "station_code": "ANT-6907",
+      "lat": 36.7236,
+      "lng": 30.4203,
+      "signal_strength": -124.5,
+      "packet_loss": 31.6,
+      "temperature": 40.0,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Zayıf sinyal seviyesi nedeniyle çağrı düşüşleri raporlanıyor.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 81,
+      "station_code": "KON-1583",
+      "lat": 38.0452,
+      "lng": 32.4039,
+      "signal_strength": -122.4,
+      "packet_loss": 27.1,
+      "temperature": 97.0,
+      "power_status": "NORMAL",
+      "recent_fault_count": 4,
+      "description": "Sıcaklık hızla yükseliyor + paket kaybı artıyor, acil müdahale gerekebilir.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 82,
+      "station_code": "KON-5569",
+      "lat": 38.178,
+      "lng": 32.4984,
+      "signal_strength": -70.4,
+      "packet_loss": 7.2,
+      "temperature": 29.0,
+      "power_status": "NORMAL",
+      "recent_fault_count": 3,
+      "description": "Donanım bileşenlerinden birinde tekrarlayan hata sinyali.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 83,
+      "station_code": "GAZ-3994",
+      "lat": 37.0358,
+      "lng": 37.1342,
+      "signal_strength": -89.3,
+      "packet_loss": 12.0,
+      "temperature": 42.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 2,
+      "description": "Son günlerde bu istasyonda birden fazla kesinti kaydı oluştu.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 84,
+      "station_code": "VAN-5281",
+      "lat": 38.5666,
+      "lng": 43.0511,
+      "signal_strength": -88.1,
+      "packet_loss": 14.1,
+      "temperature": 38.7,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Şebeke gücü kesildi, jeneratör devreye girmedi.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 85,
+      "station_code": "SAM-4709",
+      "lat": 41.6272,
+      "lng": 36.5027,
+      "signal_strength": -82.0,
+      "packet_loss": 4.5,
+      "temperature": 39.0,
+      "power_status": "NORMAL",
+      "recent_fault_count": 5,
+      "description": "Ekipmanda tekrarlayan hata kodları görülüyor, donanım yorgunluğu şüphesi.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 86,
+      "station_code": "KON-3120",
+      "lat": 37.59,
+      "lng": 32.6043,
+      "signal_strength": -74.4,
+      "packet_loss": 1.6,
+      "temperature": 34.9,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal stabil, sıcaklık normal, paket kaybı yok.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 87,
+      "station_code": "BUR-4375",
+      "lat": 40.3243,
+      "lng": 29.1955,
+      "signal_strength": -82.9,
+      "packet_loss": 2.5,
+      "temperature": 27.3,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Standart trafik yükü altında normal performans.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 88,
+      "station_code": "IZM-8349",
+      "lat": 38.4185,
+      "lng": 27.321,
+      "signal_strength": -59.2,
+      "packet_loss": 0.6,
+      "temperature": 18.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Güç kaynağı stabil, paket kaybı ölçüm hassasiyeti içinde.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 89,
+      "station_code": "VAN-7439",
+      "lat": 38.1938,
+      "lng": 43.1964,
+      "signal_strength": -87.1,
+      "packet_loss": 16.2,
+      "temperature": 32.2,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Güç kesintisi tespit edildi, yedek batarya devrede.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 90,
+      "station_code": "ADA-8921",
+      "lat": 37.2812,
+      "lng": 35.4224,
+      "signal_strength": -123.8,
+      "packet_loss": 34.7,
+      "temperature": 97.3,
+      "power_status": "NORMAL",
+      "recent_fault_count": 2,
+      "description": "Güç kesintisi ile birlikte sinyal tamamen kayboldu.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 91,
+      "station_code": "ANK-5410",
+      "lat": 40.0192,
+      "lng": 32.9734,
+      "signal_strength": -86.3,
+      "packet_loss": 10.8,
+      "temperature": 80.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Öğle saatlerinde sıcaklık aşırı yükseliyor, gece normale dönüyor.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 92,
+      "station_code": "SAM-9591",
+      "lat": 41.3128,
+      "lng": 36.2076,
+      "signal_strength": -105.1,
+      "packet_loss": 43.6,
+      "temperature": 85.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 2,
+      "description": "Sıcaklık hızla yükseliyor + paket kaybı artıyor, acil müdahale gerekebilir.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 93,
+      "station_code": "BUR-2882",
+      "lat": 40.3959,
+      "lng": 29.2041,
+      "signal_strength": -76.1,
+      "packet_loss": 6.7,
+      "temperature": 92.6,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Kabin içi sıcaklık kritik seviyeye yaklaşıyor, fan sesi anormal.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 94,
+      "station_code": "KON-5560",
+      "lat": 38.0844,
+      "lng": 32.2195,
+      "signal_strength": -79.3,
+      "packet_loss": 2.1,
+      "temperature": 18.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Standart trafik yükü altında normal performans.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 95,
+      "station_code": "KON-1769",
+      "lat": 37.8672,
+      "lng": 32.7798,
+      "signal_strength": -123.5,
+      "packet_loss": 27.8,
+      "temperature": 89.0,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 2,
+      "description": "Aşırı ısınma ve yüksek paket kaybı birlikte gözlemleniyor, istasyon kritik durumda.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 96,
+      "station_code": "ANK-9241",
+      "lat": 40.2464,
+      "lng": 32.8345,
+      "signal_strength": -118.9,
+      "packet_loss": 26.7,
+      "temperature": 31.3,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Paket kaybı oranı beklenenin çok üzerinde, hat kalitesi bozuk.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 97,
+      "station_code": "VAN-8948",
+      "lat": 38.7039,
+      "lng": 43.6615,
+      "signal_strength": -113.3,
+      "packet_loss": 23.9,
+      "temperature": 28.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Zayıf sinyal seviyesi nedeniyle çağrı düşüşleri raporlanıyor.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 98,
+      "station_code": "GAZ-8703",
+      "lat": 37.4075,
+      "lng": 37.4498,
+      "signal_strength": -102.2,
+      "packet_loss": 41.9,
+      "temperature": 31.5,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Bağlantı kalitesi düşük, kullanıcı şikayetleri sinyal kesintisi yönünde.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 99,
+      "station_code": "SAM-4916",
+      "lat": 41.2491,
+      "lng": 36.6303,
+      "signal_strength": -56.9,
+      "packet_loss": 0.0,
+      "temperature": 29.3,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Rutin kontrol: herhangi bir anomali tespit edilmedi.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 100,
+      "station_code": "TRA-5633",
+      "lat": 40.9529,
+      "lng": 39.8952,
+      "signal_strength": -85.1,
+      "packet_loss": 14.7,
+      "temperature": 24.5,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 0,
+      "description": "Güç kesintisi tespit edildi, yedek batarya devrede.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 101,
+      "station_code": "KON-9273",
+      "lat": 38.0013,
+      "lng": 32.269,
+      "signal_strength": -89.7,
+      "packet_loss": 12.1,
+      "temperature": 31.5,
+      "power_status": "NORMAL",
+      "recent_fault_count": 5,
+      "description": "İstasyon kısa süre önce onarıldı ama arıza tekrar etti.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 102,
+      "station_code": "KON-9764",
+      "lat": 38.2213,
+      "lng": 32.5134,
+      "signal_strength": -55.9,
+      "packet_loss": 3.4,
+      "temperature": 15.3,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal ve sıcaklık normal, hafif dalgalanma var ama eşik altında.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 103,
+      "station_code": "ANK-5737",
+      "lat": 40.1748,
+      "lng": 32.7663,
+      "signal_strength": -109.7,
+      "packet_loss": 45.1,
+      "temperature": 93.6,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 4,
+      "description": "Aşırı ısınma ve yüksek paket kaybı birlikte gözlemleniyor, istasyon kritik durumda.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 104,
+      "station_code": "ADA-6691",
+      "lat": 36.8833,
+      "lng": 35.4401,
+      "signal_strength": -69.3,
+      "packet_loss": 7.9,
+      "temperature": 34.6,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 1,
+      "description": "Şebeke gücü kesildi, jeneratör devreye girmedi.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 105,
+      "station_code": "VAN-4907",
+      "lat": 38.7764,
+      "lng": 43.0652,
+      "signal_strength": -71.1,
+      "packet_loss": 7.4,
+      "temperature": 31.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 3,
+      "description": "İstasyon kısa süre önce onarıldı ama arıza tekrar etti.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 106,
+      "station_code": "SAM-9784",
+      "lat": 41.6088,
+      "lng": 36.0154,
+      "signal_strength": -118.3,
+      "packet_loss": 59.6,
+      "temperature": 93.1,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 2,
+      "description": "Tekrarlayan arıza geçmişi + güncel güç kesintisi, yüksek risk.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 107,
+      "station_code": "ADA-6573",
+      "lat": 36.8374,
+      "lng": 35.1187,
+      "signal_strength": -56.7,
+      "packet_loss": 3.5,
+      "temperature": 22.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Standart trafik yükü altında normal performans.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 108,
+      "station_code": "VAN-2504",
+      "lat": 38.6385,
+      "lng": 43.078,
+      "signal_strength": -115.2,
+      "packet_loss": 31.7,
+      "temperature": 27.1,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Sinyal aralıklı olarak kopuyor, anten hizalaması bozulmuş olabilir.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 109,
+      "station_code": "GAZ-7942",
+      "lat": 36.801,
+      "lng": 37.7142,
+      "signal_strength": -76.7,
+      "packet_loss": 6.6,
+      "temperature": 24.8,
+      "power_status": "NORMAL",
+      "recent_fault_count": 5,
+      "description": "Aynı istasyonda kısa aralıklarla tekrarlayan arıza kayıtları var.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 110,
+      "station_code": "ANK-9454",
+      "lat": 40.0236,
+      "lng": 32.5465,
+      "signal_strength": -90.5,
+      "packet_loss": 12.1,
+      "temperature": 25.3,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 0,
+      "description": "Şebeke gücü kesildi, jeneratör devreye girmedi.",
+      "label": {
+        "fault_type": "GUC_KESINTISI",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 111,
+      "station_code": "ADA-1161",
+      "lat": 37.0099,
+      "lng": 35.1659,
+      "signal_strength": -70.4,
+      "packet_loss": 2.2,
+      "temperature": 31.6,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Standart trafik yükü altında normal performans.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 112,
+      "station_code": "ERZ-3539",
+      "lat": 40.1241,
+      "lng": 41.0901,
+      "signal_strength": -109.5,
+      "packet_loss": 52.6,
+      "temperature": 88.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 2,
+      "description": "Güç kesintisi ile birlikte sinyal tamamen kayboldu.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 113,
+      "station_code": "ADA-6930",
+      "lat": 37.2577,
+      "lng": 35.4757,
+      "signal_strength": -105.6,
+      "packet_loss": 46.0,
+      "temperature": 83.1,
+      "power_status": "KESINTIDE",
+      "recent_fault_count": 2,
+      "description": "Hem donanım hem bağlantı metrikleri kritik eşiklerin üzerinde.",
+      "label": {
+        "fault_type": "BAGLANTI",
+        "severity": "KRITIK"
+      }
+    },
+    {
+      "id": 114,
+      "station_code": "SAM-1825",
+      "lat": 40.9465,
+      "lng": 36.1725,
+      "signal_strength": -78.3,
+      "packet_loss": 2.9,
+      "temperature": 30.6,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Sinyal stabil, sıcaklık normal, paket kaybı yok.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 115,
+      "station_code": "BUR-8376",
+      "lat": 40.1642,
+      "lng": 29.3478,
+      "signal_strength": -66.1,
+      "packet_loss": 2.0,
+      "temperature": 68.5,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Kabin içi sıcaklık kritik seviyeye yaklaşıyor, fan sesi anormal.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 116,
+      "station_code": "TRA-0007",
+      "lat": 40.8677,
+      "lng": 39.5201,
+      "signal_strength": -66.4,
+      "packet_loss": 7.3,
+      "temperature": 75.3,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Sıcaklık sensörü sürekli yüksek değer okuyor, havalandırma kontrol edilmeli.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 117,
+      "station_code": "ERZ-7120",
+      "lat": 39.797,
+      "lng": 41.4775,
+      "signal_strength": -76.9,
+      "packet_loss": 11.8,
+      "temperature": 69.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 1,
+      "description": "Sıcaklık hızla yükseliyor, soğutma sistemi yetersiz kalıyor gibi görünüyor.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 118,
+      "station_code": "GAZ-5662",
+      "lat": 37.4074,
+      "lng": 37.2424,
+      "signal_strength": -66.1,
+      "packet_loss": 13.4,
+      "temperature": 33.7,
+      "power_status": "NORMAL",
+      "recent_fault_count": 3,
+      "description": "Donanım bileşenlerinden birinde tekrarlayan hata sinyali.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 119,
+      "station_code": "KON-3827",
+      "lat": 38.1232,
+      "lng": 32.4305,
+      "signal_strength": -85.5,
+      "packet_loss": 10.1,
+      "temperature": 47.4,
+      "power_status": "NORMAL",
+      "recent_fault_count": 5,
+      "description": "Ekipmanda tekrarlayan hata kodları görülüyor, donanım yorgunluğu şüphesi.",
+      "label": {
+        "fault_type": "DONANIM",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 120,
+      "station_code": "SAM-4089",
+      "lat": 41.3959,
+      "lng": 36.2276,
+      "signal_strength": -73.2,
+      "packet_loss": 10.5,
+      "temperature": 94.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Kabin içi sıcaklık kritik seviyeye yaklaşıyor, fan sesi anormal.",
+      "label": {
+        "fault_type": "ISINMA",
+        "severity": "ARIZALI"
+      }
+    },
+    {
+      "id": 121,
+      "station_code": "ANT-6931",
+      "lat": 37.0346,
+      "lng": 30.8744,
+      "signal_strength": -61.5,
+      "packet_loss": 2.6,
+      "temperature": 26.2,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Rutin kontrol: herhangi bir anomali tespit edilmedi.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    },
+    {
+      "id": 122,
+      "station_code": "ANK-1520",
+      "lat": 39.8489,
+      "lng": 32.7603,
+      "signal_strength": -74.7,
+      "packet_loss": 1.1,
+      "temperature": 16.0,
+      "power_status": "NORMAL",
+      "recent_fault_count": 0,
+      "description": "Güç kaynağı stabil, paket kaybı ölçüm hassasiyeti içinde.",
+      "label": {
+        "fault_type": "BELIRSIZ",
+        "severity": "NORMAL"
+      }
+    }
+  ]
+}
