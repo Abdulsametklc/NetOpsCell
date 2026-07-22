@@ -34,7 +34,7 @@ Standart response formatı: `{ "success": bool, "data": ..., "error": {...} | nu
 
 ## Auth Notu
 
-Gateway/Identity Service henüz bu servise entegre edilmediği için, rol gerektiren endpoint'ler `X-User-Id` ve `X-User-Role` header'larını doğrudan okur (bkz. `app/core/auth.py`). Gateway kurulunca bu header'lar JWT doğrulamasından sonra otomatik eklenecek; servis kodu değişmeyecek.
+Rol gerektiren endpoint'ler `X-User-Id` ve `X-User-Role` header'larını okur (bkz. `app/core/auth.py`). Bu header'lar artık Gateway tarafından, JWT doğrulamasından sonra otomatik ekleniyor (bkz. [gateway/README.md](../../gateway/README.md)) — servise doğrudan (Gateway'siz) istek atılırsa bu header'lar elle gönderilmelidir.
 
 ## Environment Değişkenleri
 

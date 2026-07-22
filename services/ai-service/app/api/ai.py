@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.accuracy import compute_accuracy_by_category, compute_overall_accuracy
@@ -9,6 +10,7 @@ from app.core.database import get_db
 from app.core.predictor import predict
 from app.models.assignment_log import AssignmentLog
 from app.models.prediction import Prediction
+from app.models.team import TeamProfile, TeamWorkload
 from app.schemas.contracts import AssignRequest, TelemetryInput
 
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
@@ -65,6 +67,26 @@ async def assign_endpoint(payload: AssignRequest, db: AsyncSession = Depends(get
         },
         "error": None,
     }
+
+
+@router.get("/teams")
+async def teams_endpoint(db: AsyncSession = Depends(get_db)):
+    """Guncel ekip roster + is yuku (Supervizor Dashboard'daki manuel atama
+    dropdown'u icin, ARCHITECTURE.md SS4.3 - 'demo seffafligi icin')."""
+    teams = (await db.execute(select(TeamProfile).where(TeamProfile.is_active.is_(True)))).scalars().all()
+
+    data = []
+    for team in teams:
+        workload = await db.get(TeamWorkload, team.id)
+        data.append(
+            {
+                "team_id": str(team.id),
+                "team_name": team.name,
+                "active_load": workload.active_incident_count if workload else 0,
+            }
+        )
+
+    return {"success": True, "data": data, "error": None}
 
 
 @router.get("/accuracy")
