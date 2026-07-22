@@ -1,0 +1,5 @@
+# Shell scripts must always use LF line endings, regardless of the committer's
+# platform/git config. Windows-committed CRLF breaks the shebang (#!/bin/sh\r)
+# when the script runs inside a Linux container, causing
+# "exec: no such file or directory" at container startup.
+*.sh text eol=lf

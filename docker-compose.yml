@@ -121,13 +121,53 @@ services:
       retries: 5
       start_period: 10s
 
-  # --- Kisi 1: identity-db, identity-service, gateway BURAYA eklenecek --------------
-  # --- Kisi 3: frontend BURAYA eklenecek ---------------------------------------------
+  # --- Kisi 1: Identity Service (gateway CP3'te eklenecek) ---------------------------
+  identity-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: identity_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - identity_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  identity-service:
+    build: ./services/identity-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@identity-db:5432/identity_db
+    ports:
+      - "8001:8001"
+    depends_on:
+      identity-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # --- Kisi 3: Frontend ---------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:80"
 
 volumes:
   incident_data: {}
   ai_data: {}
   game_data: {}
+  identity_data: {}
 
 networks:
   default:
