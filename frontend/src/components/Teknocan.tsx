@@ -4,59 +4,75 @@
  */
 export function Teknocan() {
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-20 hidden select-none flex-col items-end gap-2 sm:flex md:bottom-10 md:right-10">
-      <div className="pointer-events-auto mr-2 max-w-[190px] rounded-2xl rounded-br-sm bg-white px-4 py-3 text-sm font-medium text-tc-navy-900 shadow-xl">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-20 hidden select-none flex-col items-end gap-2 sm:flex md:bottom-8 md:right-10">
+      <div className="pointer-events-auto mr-4 max-w-[190px] rounded-2xl rounded-br-sm bg-white px-4 py-3 text-sm font-medium text-tc-navy-900 shadow-xl">
         Merhaba! 👋 Ben Teknocan.
         <br />
         NetOpsCell'e hoş geldin!
       </div>
 
       <svg
-        viewBox="0 0 160 190"
-        className="h-36 w-auto animate-mascot-float drop-shadow-2xl md:h-44"
+        viewBox="0 0 160 230"
+        className="h-44 w-auto animate-mascot-float drop-shadow-2xl md:h-56"
         aria-hidden="true"
       >
-        <ellipse cx="80" cy="178" rx="34" ry="7" fill="#000000" opacity="0.15" />
+        <ellipse cx="82" cy="222" rx="38" ry="7" fill="#000000" opacity="0.15" />
 
-        <line x1="80" y1="10" x2="80" y2="34" stroke="#253342" strokeWidth="4" strokeLinecap="round" />
-        <circle cx="80" cy="8" r="6" fill="#ffc900" />
+        {/* sol anten */}
+        <path d="M62 26 C50 18 42 8 40 -2" stroke="#e6b400" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <circle cx="39" cy="-6" r="8" fill="#ffc900" stroke="#e6b400" strokeWidth="2" />
+        {/* sağ (uzun) anten */}
+        <path d="M96 22 C100 8 98 -8 92 -20" stroke="#e6b400" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <circle cx="90" cy="-24" r="8" fill="#ffc900" stroke="#e6b400" strokeWidth="2" />
 
-        <rect x="42" y="32" width="76" height="58" rx="24" fill="#2855ac" />
-        <rect x="54" y="50" width="52" height="22" rx="11" fill="#e9f1ff" />
-        <circle cx="70" cy="61" r="6" fill="#253342" />
-        <circle cx="90" cy="61" r="6" fill="#253342" />
-        <path d="M72 66 Q80 71 88 66" stroke="#253342" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        {/* kulak silindirleri */}
+        <rect x="20" y="58" width="18" height="30" rx="8" fill="#e6b400" />
+        <rect x="122" y="58" width="18" height="30" rx="8" fill="#e6b400" />
 
-        <rect x="36" y="88" width="88" height="72" rx="26" fill="#f4f7fb" stroke="#2855ac" strokeWidth="3" />
-        <rect x="63" y="108" width="34" height="34" rx="10" fill="#ffc900" />
-        <path
-          d="M74 125h12M80 119v12"
-          stroke="#253342"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
+        {/* kafa */}
+        <ellipse cx="80" cy="72" rx="48" ry="44" fill="#ffc900" />
+        <ellipse cx="80" cy="86" rx="48" ry="26" fill="#f2ba00" opacity="0.55" />
 
+        {/* kaşlar */}
+        <path d="M50 56 Q59 49 68 55" stroke="#1c2733" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <path d="M92 55 Q101 49 110 56" stroke="#1c2733" strokeWidth="4" fill="none" strokeLinecap="round" />
+
+        {/* gözler */}
+        <circle cx="61" cy="74" r="16" fill="#16212c" />
+        <circle cx="99" cy="74" r="16" fill="#16212c" />
+        <circle cx="56" cy="68" r="4.5" fill="#ffffff" />
+        <circle cx="94" cy="68" r="4.5" fill="#ffffff" />
+
+        {/* gülümseme */}
+        <path d="M68 96 Q80 106 92 96" stroke="#16212c" strokeWidth="4" fill="none" strokeLinecap="round" />
+
+        {/* boyun */}
+        <rect x="68" y="112" width="24" height="14" fill="#ffc900" />
+
+        {/* gövde: lacivert ceket + beyaz gömlek */}
+        <rect x="34" y="120" width="92" height="76" rx="30" fill="#253342" />
+        <rect x="58" y="128" width="44" height="68" rx="16" fill="#f4f7fb" />
+        <circle cx="80" cy="146" r="2.6" fill="#94a3b8" />
+        <circle cx="80" cy="158" r="2.6" fill="#94a3b8" />
+        <circle cx="80" cy="170" r="2.6" fill="#94a3b8" />
+
+        {/* sol kol (aşağıda) */}
+        <path d="M40 132c-16 6-22 20-20 36" stroke="#2f4256" strokeWidth="16" fill="none" strokeLinecap="round" />
+        <circle cx="22" cy="172" r="13" fill="#ffc900" />
+
+        {/* sağ kol (el sallıyor) */}
         <g className="animate-mascot-wave">
-          <path
-            d="M116 104c14-4 24-16 22-28"
-            stroke="#2855ac"
-            strokeWidth="10"
-            fill="none"
-            strokeLinecap="round"
-          />
-          <circle cx="139" cy="75" r="8" fill="#f4c9a0" />
+          <path d="M120 130c18 2 30-8 32-24" stroke="#2f4256" strokeWidth="16" fill="none" strokeLinecap="round" />
+          <circle cx="154" cy="102" r="13" fill="#ffc900" />
         </g>
-        <path
-          d="M44 104c-14-2-24 8-24 20"
-          stroke="#2855ac"
-          strokeWidth="10"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <circle cx="20" cy="126" r="8" fill="#f4c9a0" />
 
-        <ellipse cx="58" cy="150" rx="14" ry="9" fill="#2855ac" />
-        <ellipse cx="102" cy="150" rx="14" ry="9" fill="#2855ac" />
+        {/* bacaklar */}
+        <rect x="48" y="192" width="26" height="30" rx="10" fill="#cbb994" />
+        <rect x="86" y="192" width="26" height="30" rx="10" fill="#cbb994" />
+
+        {/* ayakkabılar */}
+        <rect x="42" y="214" width="34" height="14" rx="7" fill="#f7f9fb" stroke="#cbd5e1" strokeWidth="1.5" />
+        <rect x="84" y="214" width="34" height="14" rx="7" fill="#f7f9fb" stroke="#cbd5e1" strokeWidth="1.5" />
       </svg>
     </div>
   )
