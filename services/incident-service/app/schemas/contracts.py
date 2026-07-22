@@ -139,3 +139,12 @@ class IncidentSlaBreached(BaseModel):
     priority: Priority
     sla_due_at: datetime
     breached_at: datetime
+
+
+class IncidentTypeChanged(BaseModel):
+    event_type: Literal["incident.type_changed"] = "incident.type_changed"
+    incident_id: str
+    original_fault_type: FaultType
+    new_fault_type: FaultType
+    changed_by: str
+    changed_at: datetime
