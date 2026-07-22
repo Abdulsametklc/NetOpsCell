@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { IncidentListItem } from '../api/types'
 import { IncidentStatus } from '../api/types'
-import { incidentModeLabel, listIncidents, patchIncidentStatus } from '../api/incidentApi'
+import { listIncidents, patchIncidentStatus } from '../api/incidentApi'
 import { ApiError } from '../api/client'
 import { useAuthStore } from '../store/authStore'
 import { useToastStore } from '../store/toastStore'
@@ -97,7 +97,7 @@ export function TechnicianDashboardPage() {
   }
 
   return (
-    <AppShell title="NetOpsCell — Teknisyen" subtitle={incidentModeLabel()}>
+    <AppShell title="NetOpsCell — Teknisyen">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Atanan arızalar</h2>
         <Button variant="secondary" size="sm" onClick={() => void load()}>

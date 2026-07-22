@@ -18,7 +18,6 @@ import {
 import type { AccuracyReport, AssignableTeam, StatsSummary, UnassignedIncident } from '../api/types'
 import {
   assignIncident,
-  dashboardModeLabel,
   fetchAccuracy,
   fetchAssignableTeams,
   fetchStatsSummary,
@@ -32,7 +31,7 @@ import { useTheme } from '../lib/theme'
 import { useToastStore } from '../store/toastStore'
 
 // Turkcell marka paleti: sarı öne çıkan seri, lacivert + tamamlayıcı tonlar destekte.
-const PIE_COLORS = ['#ffc800', '#4d76b8', '#f97316', '#f43f5e', '#a78bfa', '#5b7ba8']
+const PIE_COLORS = ['#ffc900', '#2855ac', '#f97316', '#f43f5e', '#a78bfa', '#3a5069']
 
 function ChartCard({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -47,7 +46,7 @@ export function SupervisorDashboardPage() {
   const pushToast = useToastStore((s) => s.push)
   const { theme } = useTheme()
   const isDark = theme === 'dark'
-  const gridStroke = isDark ? '#152c5c' : '#e2e8f0'
+  const gridStroke = isDark ? '#2f4256' : '#e2e8f0'
   const axisStroke = isDark ? '#94a3b8' : '#64748b'
 
   const [stats, setStats] = useState<StatsSummary | null>(null)
@@ -102,7 +101,7 @@ export function SupervisorDashboardPage() {
   }
 
   return (
-    <AppShell title="NetOpsCell — Süpervizör" subtitle={dashboardModeLabel()}>
+    <AppShell title="NetOpsCell — Süpervizör">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Operasyon özeti</h2>
         <Button variant="secondary" size="sm" onClick={() => void load()}>
@@ -136,7 +135,7 @@ export function SupervisorDashboardPage() {
                 <XAxis dataKey="name" stroke={axisStroke} fontSize={11} />
                 <YAxis stroke={axisStroke} fontSize={11} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#ffc800" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="#ffc900" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -151,8 +150,8 @@ export function SupervisorDashboardPage() {
                 <Legend />
                 <Line type="monotone" dataKey="KRITIK" stroke="#f43f5e" strokeWidth={2} />
                 <Line type="monotone" dataKey="YUKSEK" stroke="#f97316" strokeWidth={2} />
-                <Line type="monotone" dataKey="ORTA" stroke="#ffc800" strokeWidth={2} />
-                <Line type="monotone" dataKey="DUSUK" stroke="#5b7ba8" strokeWidth={2} />
+                <Line type="monotone" dataKey="ORTA" stroke="#ffc900" strokeWidth={2} />
+                <Line type="monotone" dataKey="DUSUK" stroke="#3a6ccd" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -174,7 +173,7 @@ export function SupervisorDashboardPage() {
                 <XAxis type="number" domain={[0, 100]} stroke={axisStroke} fontSize={11} />
                 <YAxis type="category" dataKey="category" width={90} stroke={axisStroke} fontSize={10} />
                 <Tooltip />
-                <Bar dataKey="pct" fill="#4d76b8" name="Doğruluk %" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="pct" fill="#2855ac" name="Doğruluk %" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">

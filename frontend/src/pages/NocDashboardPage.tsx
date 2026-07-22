@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { PredictResponse, TelemetryInput } from '../api/types'
 import { PowerStatus, Suggestion } from '../api/types'
-import { CRITICAL_TELEMETRY, incidentModeLabel, submitTelemetry } from '../api/incidentApi'
+import { CRITICAL_TELEMETRY, submitTelemetry } from '../api/incidentApi'
 import { ApiError } from '../api/client'
 import { AppShell } from '../components/AppShell'
 import { Button, Card, Field, Input, Select } from '../components/ui'
@@ -112,7 +112,7 @@ export function NocDashboardPage() {
   }
 
   return (
-    <AppShell title="NetOpsCell — NOC" subtitle={`Telemetri simülatörü · ${incidentModeLabel()}`}>
+    <AppShell title="NetOpsCell — NOC" subtitle="Telemetri simülatörü">
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
           <h2 className="mb-3 text-lg font-semibold">Telemetri gönder</h2>

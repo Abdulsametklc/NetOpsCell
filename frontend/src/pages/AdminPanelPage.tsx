@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AuditLogRow, CreatePersonnelRequest } from '../api/types'
 import { Role } from '../api/types'
-import { createPersonnel, dashboardModeLabel, fetchAuditLogs } from '../api/dashboardApi'
+import { createPersonnel, fetchAuditLogs } from '../api/dashboardApi'
 import { ApiError } from '../api/client'
 import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/UiStates'
@@ -65,7 +65,7 @@ export function AdminPanelPage() {
   }
 
   return (
-    <AppShell title="NetOpsCell — Admin" subtitle={dashboardModeLabel()}>
+    <AppShell title="NetOpsCell — Admin">
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
           <h2 className="mb-3 text-lg font-semibold">Personel hesabı oluştur</h2>

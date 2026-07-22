@@ -5,17 +5,19 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Turkcell kurumsal lacivert tonları */
-  --color-tc-navy-950: #040b1a;
-  --color-tc-navy-900: #081733;
-  --color-tc-navy-800: #0e2148;
-  --color-tc-navy-700: #152c5c;
-  --color-tc-navy-600: #1d3b78;
-  --color-tc-navy-500: #274d96;
+  /* Turkcell kurumsal mavi tonları — turkcell.com.tr'nin gerçek CSS bundle'larından
+     çıkarılan hex değerlerine dayanır (bkz. #2855ac ana marka mavisi, #253342 koyu
+     yüzey tonu). Eski değerler (near-black lacivert) marka rengine sadık değildi. */
+  --color-tc-navy-950: #16212c;
+  --color-tc-navy-900: #253342;
+  --color-tc-navy-800: #2f4256;
+  --color-tc-navy-700: #3a5069;
+  --color-tc-navy-600: #2855ac;
+  --color-tc-navy-500: #3a6ccd;
 
-  /* Turkcell imza sarısı */
+  /* Turkcell imza sarısı (turkcell.com.tr: #ffc900) */
   --color-tc-yellow-600: #d9a600;
-  --color-tc-yellow-500: #ffc800;
+  --color-tc-yellow-500: #ffc900;
   --color-tc-yellow-400: #ffd633;
   --color-tc-yellow-300: #ffe27a;
   --color-tc-yellow-100: #fff6d6;

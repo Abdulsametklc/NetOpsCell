@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { logout } from '../api/authApi'
 import { Role } from '../api/types'
+import { homePathForRole } from '../lib/roleRoutes'
 import { useAuthStore } from '../store/authStore'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -21,10 +22,16 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
   const role = user?.role
   const navigate = useNavigate()
   const location = useLocation()
+  const isHome = location.pathname === homePathForRole(role)
 
   async function onLogout() {
     await logout()
     navigate('/login', { replace: true })
+  }
+
+  function onBack() {
+    if (window.history.length > 1) navigate(-1)
+    else navigate(homePathForRole(role))
   }
 
   const items: NavItem[] = []
@@ -45,9 +52,21 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-tc-navy-950 dark:bg-tc-navy-950 dark:text-slate-100">
-      <header className="bg-tc-navy-900 text-white shadow-md">
+      <header className="bg-tc-navy-600 text-white shadow-md">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
+            {!isHome && (
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label="Geri git"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-white/80 transition hover:bg-white/10 hover:text-white"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
             <Link to="/" className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-md bg-tc-yellow-500 text-sm font-black text-tc-navy-950">
                 N

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { authModeLabel, fetchMe, login } from '../api/authApi'
+import { fetchMe, login } from '../api/authApi'
 import { useAuthStore } from '../store/authStore'
 import { homePathForRole } from '../lib/roleRoutes'
 import { ThemeToggle } from '../components/ThemeToggle'
@@ -68,7 +68,7 @@ export function LoginPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-tc-navy-950 via-tc-navy-900 to-tc-navy-950 text-white">
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-tc-navy-900 via-tc-navy-600 to-tc-navy-950 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,200,0,0.12),transparent_45%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_100%,rgba(255,200,0,0.08),transparent_45%)]" />
 
@@ -88,7 +88,7 @@ export function LoginPage() {
         <div className="w-full max-w-md">
           <div className="mb-6 text-center">
             <h1 className="text-2xl font-bold tracking-tight">Şebeke Operasyon Platformu</h1>
-            <p className="mt-1 text-sm text-white/60">Giriş yapın — {authModeLabel()}</p>
+            <p className="mt-1 text-sm text-white/60">Devam etmek için giriş yapın</p>
           </div>
 
           <div className="mb-4 flex gap-2 rounded-full bg-white/5 p-1">
@@ -133,11 +133,6 @@ export function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required={!import.meta.env.VITE_USE_AUTH_MOCK}
                   />
-                  {import.meta.env.VITE_USE_AUTH_MOCK === 'true' && (
-                    <span className="mt-1 block text-xs text-white/40">
-                      Mock: şifre serbest. Rol için e-postada admin/noc/super kullan.
-                    </span>
-                  )}
                 </Field>
               </>
             ) : (
@@ -147,7 +142,6 @@ export function LoginPage() {
                 </Field>
                 <Field label="OTP">
                   <Input value={otp} onChange={(e) => setOtp(e.target.value)} required />
-                  <span className="mt-1 block text-xs text-white/40">Simülasyon kodu: 1234</span>
                 </Field>
               </>
             )}

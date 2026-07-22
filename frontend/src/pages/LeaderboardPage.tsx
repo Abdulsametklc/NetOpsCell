@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { LeaderboardEntry, LeaderboardPeriod } from '../api/types'
-import { fetchLeaderboard, gameModeLabel } from '../api/gameApi'
+import { fetchLeaderboard } from '../api/gameApi'
 import { ApiError } from '../api/client'
 import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/UiStates'
@@ -42,7 +42,7 @@ export function LeaderboardPage() {
   }
 
   return (
-    <AppShell title="NetOpsCell — Liderlik" subtitle={gameModeLabel()}>
+    <AppShell title="NetOpsCell — Liderlik">
       <div className="mb-4 flex gap-2">
         {(['daily', 'weekly'] as const).map((p) => (
           <Pill key={p} active={period === p} onClick={() => setPeriod(p)}>

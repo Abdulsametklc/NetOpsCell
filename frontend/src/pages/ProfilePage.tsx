@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { GameProfile } from '../api/types'
-import { fetchGameProfile, gameModeLabel } from '../api/gameApi'
+import { fetchGameProfile } from '../api/gameApi'
 import { ApiError } from '../api/client'
 import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/UiStates'
@@ -36,7 +36,7 @@ export function ProfilePage() {
   }, [authUser?.id])
 
   return (
-    <AppShell title="NetOpsCell — Profil" subtitle={gameModeLabel()}>
+    <AppShell title="NetOpsCell — Profil">
       {loading && <LoadingState />}
       {error && <ErrorState message={error} />}
       {!loading && !error && !profile && <EmptyState message="Profil bulunamadı." />}
