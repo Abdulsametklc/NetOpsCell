@@ -22,7 +22,10 @@
   --color-tc-yellow-300: #ffe27a;
   --color-tc-yellow-100: #fff6d6;
 
-  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* turkcell.com.tr kendi CSS bundle'ında lisanslı "GreycliffCF" kullanıyor;
+     bu ticari fontu kopyalayamayız. Poppins, aynı geometrik/yuvarlak karaktere
+     sahip en yakın serbest lisanslı alternatif. */
+  --font-sans: 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 html {
@@ -30,7 +33,42 @@ html {
 }
 
 body {
+  line-height: 1.5;
   transition: background-color 150ms ease;
+}
+
+/* turkcell.com.tr'nin gerçek CSS'inden çıkarılan tipografi ölçeği
+   (font-size / font-weight / line-height / letter-spacing) - bkz.
+   en sık geçen h1/h2 kuralları ve genel font-size dağılımı.
+   @layer base içinde: sayfa bileşenlerindeki Tailwind sınıfları
+   (örn. text-2xl) bu taban değerleri ezebilsin diye. */
+@layer base {
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.035rem;
+  }
+  h2 {
+    font-size: 1.3125rem;
+    font-weight: 500;
+    line-height: 1.33;
+  }
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.33;
+  }
+
+  @media (min-width: 768px) {
+    h1 {
+      font-size: 3.125rem;
+      letter-spacing: -0.04875rem;
+    }
+    h2 {
+      font-size: 1.75rem;
+    }
+  }
 }
 
 @keyframes mascot-float {
