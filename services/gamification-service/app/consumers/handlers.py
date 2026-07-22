@@ -1,9 +1,10 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.event_publisher import publish_event
 from app.models import (
     Badge,
     FaultTypeResolutionCount,
@@ -12,7 +13,7 @@ from app.models import (
     UserBadge,
     UserStats,
 )
-from app.schemas.contracts import FaultType, Level, Priority
+from app.schemas.contracts import BadgeEarned, FaultType, GamePointsAwarded, Level, Priority
 
 # ARCHITECTURE.md SS4.4 SLA sureleri - burada sadece puan hesabi icin (hizli mudahale /
 # KRITIK-SLA-icinde bonuslari), Incident Service'in kendi SLA scheduler'indan (CP5) BAGIMSIZ
@@ -78,6 +79,16 @@ async def _add_points(
     stats = await _get_or_create_stats(db, user_id)
     stats.total_points += points
     stats.level = _compute_level(stats.total_points)
+    await publish_event(
+        "game.points_awarded",
+        GamePointsAwarded(
+            user_id=str(user_id),
+            incident_id=str(incident_id),
+            points=points,
+            reason=reason,
+            new_total=stats.total_points,
+        ),
+    )
     return stats
 
 
@@ -97,8 +108,12 @@ async def _award_badge_if_missing(db: AsyncSession, user_id: uuid.UUID, code: st
     ).scalar_one_or_none()
     if existing is not None:
         return
-    db.add(UserBadge(user_id=user_id, badge_id=badge.id))
-    # TODO (CP6+/Notification Hub): badge.earned event yayinla (bkz. docs/CONTRACTS.md).
+    earned_at = datetime.now(timezone.utc)
+    db.add(UserBadge(user_id=user_id, badge_id=badge.id, earned_at=earned_at))
+    await publish_event(
+        "badge.earned",
+        BadgeEarned(user_id=str(user_id), badge_code=code, earned_at=earned_at),
+    )
 
 
 async def _check_daily_marathoner_badge(db: AsyncSession, user_id: uuid.UUID, now: datetime) -> None:
