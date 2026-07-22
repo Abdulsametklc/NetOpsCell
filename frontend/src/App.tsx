@@ -6,10 +6,12 @@ import { ToastHost } from './components/ToastHost'
 import { Role } from './api/types'
 import { RoleHomeRedirect } from './lib/roleRoutes'
 import { CustomerHomePage } from './pages/CustomerHomePage'
+import { AdminPanelPage } from './pages/AdminPanelPage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { NocDashboardPage } from './pages/NocDashboardPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { SupervisorDashboardPage } from './pages/SupervisorDashboardPage'
 import { TechnicianDashboardPage } from './pages/TechnicianDashboardPage'
 
 export default function App() {
@@ -44,6 +46,22 @@ export default function App() {
               roles={[Role.NOC_OPERATORU, Role.SUPERVIZOR, Role.ADMIN]}
             >
               <NocDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute roles={[Role.SUPERVIZOR, Role.ADMIN]}>
+              <SupervisorDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={[Role.ADMIN]}>
+              <AdminPanelPage />
             </ProtectedRoute>
           }
         />
