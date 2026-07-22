@@ -24,17 +24,23 @@ const LABEL: Record<string, string> = {
   [IncidentStatus.KAPANDI]: 'Vakayı kapat',
 }
 
+/**
+ * incident-service/app/core/state_machine.py ile birebir aynı yetki kuralları:
+ * - SAHA_TEKNISYENI: sadece KENDİNE atanan vakada teknisyen geçişleri
+ * - NOC_OPERATORU: sadece COZULDU -> KAPANDI
+ * - SUPERVIZOR / ADMIN: PATCH /status üzerinden hiçbir geçiş yapamaz (manuel atama
+ *   ayrı bir uçtur, ARCHITECTURE.md §3.1 - "Durum değiştirme" sütununda Admin ✗)
+ */
 export function allowedNextStatuses(
   current: string,
   role: Role | string | null | undefined,
+  isAssignedToMe: boolean,
 ): string[] {
   if (role === 'SAHA_TEKNISYENI') {
-    return TECH_TRANSITIONS[current] ?? []
+    return isAssignedToMe ? (TECH_TRANSITIONS[current] ?? []) : []
   }
-  if (role === 'NOC_OPERATORU' || role === 'SUPERVIZOR' || role === 'ADMIN') {
-    const tech = TECH_TRANSITIONS[current] ?? []
-    const noc = NOC_TRANSITIONS[current] ?? []
-    return [...new Set([...tech, ...noc])]
+  if (role === 'NOC_OPERATORU') {
+    return NOC_TRANSITIONS[current] ?? []
   }
   return []
 }

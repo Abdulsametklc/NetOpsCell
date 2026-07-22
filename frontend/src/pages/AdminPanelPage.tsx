@@ -27,7 +27,10 @@ export function AdminPanelPage() {
   const [form, setForm] = useState<CreatePersonnelRequest>(emptyForm)
   const [specText, setSpecText] = useState('DONANIM,ISINMA')
   const [regionText, setRegionText] = useState('IST-AVRUPA')
+  const [baseLat, setBaseLat] = useState('41.0082')
+  const [baseLon, setBaseLon] = useState('28.9784')
   const [saving, setSaving] = useState(false)
+  const isTechnician = form.role === Role.SAHA_TEKNISYENI
 
   async function loadLogs() {
     setLoading(true)
@@ -53,6 +56,8 @@ export function AdminPanelPage() {
         ...form,
         specializations: specText.split(',').map((s) => s.trim()).filter(Boolean),
         regions: regionText.split(',').map((s) => s.trim()).filter(Boolean),
+        // Saha teknisyeni icin zorunlu (AI Service'in Haversine atama skorlamasi kullanir).
+        ...(isTechnician ? { base_lat: Number(baseLat), base_lon: Number(baseLon) } : {}),
       }
       await createPersonnel(body)
       pushToast('success', 'Personel oluşturuldu', body.email)
@@ -101,6 +106,31 @@ export function AdminPanelPage() {
             <Field label="Bölgeler (virgülle)">
               <Input value={regionText} onChange={(e) => setRegionText(e.target.value)} />
             </Field>
+            {isTechnician && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Konum (lat)">
+                  <Input
+                    type="number"
+                    step="any"
+                    value={baseLat}
+                    onChange={(e) => setBaseLat(e.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Konum (lon)">
+                  <Input
+                    type="number"
+                    step="any"
+                    value={baseLon}
+                    onChange={(e) => setBaseLon(e.target.value)}
+                    required
+                  />
+                </Field>
+                <p className="col-span-2 -mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Saha teknisyeni için zorunlu — AI Service'in atama skorlaması (mesafe) bu konumu kullanır.
+                </p>
+              </div>
+            )}
             <Button type="submit" variant="primary" disabled={saving} className="w-full">
               {saving ? 'Kaydediliyor…' : 'Oluştur'}
             </Button>

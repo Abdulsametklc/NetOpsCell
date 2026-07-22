@@ -87,12 +87,14 @@ export function SupervisorDashboardPage() {
 
   async function onAssign() {
     if (!assignFor || !teamId) return
+    const team = teams.find((t) => t.team_id === teamId)
+    if (!team) return
     setBusy(true)
     try {
-      await assignIncident(assignFor, teamId)
+      await assignIncident(assignFor, team.team_id, team.team_name)
       setQueue((prev) => prev.filter((i) => i.id !== assignFor))
       setAssignFor(null)
-      pushToast('success', 'Atama yapıldı', `Ekip ${teamId}`)
+      pushToast('success', 'Atama yapıldı', team.team_name)
     } catch (err) {
       pushToast('warning', 'Atama başarısız', err instanceof Error ? err.message : 'Hata')
     } finally {

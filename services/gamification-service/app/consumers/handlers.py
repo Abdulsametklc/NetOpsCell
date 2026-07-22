@@ -8,6 +8,7 @@ from app.core.event_publisher import publish_event
 from app.models import (
     Badge,
     FaultTypeResolutionCount,
+    PersonnelName,
     PointLedger,
     StationResolutionLog,
     UserBadge,
@@ -261,4 +262,20 @@ async def handle_sla_breached(db: AsyncSession, event: dict) -> None:
     user_id = uuid.UUID(team_id)
     incident_id = uuid.UUID(event["incident_id"])
     await _add_points(db, user_id, incident_id, "incident.sla_breached", SLA_BREACH_PENALTY, "SLA asimi")
+    await db.commit()
+
+
+async def handle_personnel_upserted(db: AsyncSession, event: dict) -> None:
+    """identity.personnel.upserted -> personnel_name read-model cache'ini gunceller
+    (ai-service'in team_profile'i ile ayni desen). Bu event su an sadece
+    SAHA_TEKNISYENI icin yayinlaniyor (identity-service), ki zaten liderlik
+    tablosunda gorunecek tek rol de bu (puanlar sadece cozen teknisyene yazilir)."""
+    user_id = uuid.UUID(event["user_id"])
+    name = event["name"]
+
+    cache = await db.get(PersonnelName, user_id)
+    if cache is None:
+        db.add(PersonnelName(user_id=user_id, name=name))
+    else:
+        cache.name = name
     await db.commit()

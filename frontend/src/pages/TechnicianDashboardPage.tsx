@@ -115,7 +115,10 @@ export function TechnicianDashboardPage() {
       {!loading && incidents.length > 0 && (
         <div className="space-y-4">
           {incidents.map((item) => {
-            const next = allowedNextStatuses(String(item.current_status), role)
+            const isAssignedToMe = Boolean(user?.id && item.assigned_team_id === user.id)
+            const next = allowedNextStatuses(String(item.current_status), role, isAssignedToMe)
+            const canMessage =
+              role === 'NOC_OPERATORU' || (role === 'SAHA_TEKNISYENI' && isAssignedToMe)
             const open = threadOpen === item.id
             return (
               <Card key={item.id} className="p-4">
@@ -134,11 +137,14 @@ export function TechnicianDashboardPage() {
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {next.length === 0 && (
-                    <span className="text-xs text-slate-400 dark:text-slate-500">
-                      Bu durumda teknisyen aksiyonu yok
+                    <span className="rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs text-slate-400 dark:border-tc-navy-800 dark:text-slate-500">
                       {item.current_status === IncidentStatus.PARCA_BEKLENIYOR
-                        ? ' (parça tedariki bekleniyor)'
-                        : ''}
+                        ? 'Parça tedariki bekleniyor — sistem otomatik ilerletecek'
+                        : role === 'SAHA_TEKNISYENI' && !isAssignedToMe
+                          ? 'Bu vaka size atanmadığı için durum değiştiremezsiniz'
+                          : role === 'SUPERVIZOR' || role === 'ADMIN'
+                            ? 'Rolünüz bu ekrandan durum değiştiremez (sadece görüntüleme)'
+                            : 'Bu durumda aksiyon yok'}
                     </span>
                   )}
                   {next.map((to) => (
@@ -191,7 +197,13 @@ export function TechnicianDashboardPage() {
                     </div>
                   </div>
                 )}
-                {open && <MessageThread incidentId={item.id} incidentNumber={item.incident_number} />}
+                {open && (
+                  <MessageThread
+                    incidentId={item.id}
+                    incidentNumber={item.incident_number}
+                    canSend={canMessage}
+                  />
+                )}
               </Card>
             )
           })}

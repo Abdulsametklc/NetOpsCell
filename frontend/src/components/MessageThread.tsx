@@ -9,9 +9,12 @@ import { Button, Input } from './ui'
 interface MessageThreadProps {
   incidentId: string
   incidentNumber: string
+  /** false ise (rolünüz bu vakada mesajlaşma yetkisine sahip değilse) gönderim
+   * formu devre dışı gösterilir - mesajlar yine de okunabilir. */
+  canSend?: boolean
 }
 
-export function MessageThread({ incidentId, incidentNumber }: MessageThreadProps) {
+export function MessageThread({ incidentId, incidentNumber, canSend = true }: MessageThreadProps) {
   const [messages, setMessages] = useState<IncidentMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -86,18 +89,24 @@ export function MessageThread({ incidentId, incidentNumber }: MessageThreadProps
         </ul>
       )}
 
-      <form onSubmit={onSend} className="flex gap-2">
-        <Input
-          className="flex-1"
-          placeholder="Mesaj yaz…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={sending}
-        />
-        <Button type="submit" variant="primary" size="sm" disabled={sending || !text.trim()}>
-          Gönder
-        </Button>
-      </form>
+      {canSend ? (
+        <form onSubmit={onSend} className="flex gap-2">
+          <Input
+            className="flex-1"
+            placeholder="Mesaj yaz…"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={sending}
+          />
+          <Button type="submit" variant="primary" size="sm" disabled={sending || !text.trim()}>
+            Gönder
+          </Button>
+        </form>
+      ) : (
+        <p className="rounded border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-400 dark:border-tc-navy-800 dark:text-slate-500">
+          Bu vakada mesaj yazma yetkiniz yok — sadece atanan teknisyen ve NOC operatörü yazabilir.
+        </p>
+      )}
     </div>
   )
 }

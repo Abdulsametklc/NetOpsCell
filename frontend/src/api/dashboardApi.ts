@@ -112,6 +112,7 @@ export async function fetchAssignableTeams(): Promise<AssignableTeam[]> {
 export async function assignIncident(
   incidentId: string,
   teamId: string,
+  teamName: string,
 ): Promise<void> {
   if (useDashMock()) {
     const idx = mockUnassigned.findIndex((i) => i.id === incidentId)
@@ -119,9 +120,11 @@ export async function assignIncident(
     void teamId
     return
   }
+  // incident-service kendi DB'sinde ekip adi tutmuyor (database-per-service) - bu yuzden
+  // manuel atamada team_name'i de birlikte gondermemiz gerekiyor (bkz. ManualAssignRequest).
   await apiFetch(`/api/v1/incidents/${incidentId}/assign`, {
     method: 'PATCH',
-    body: JSON.stringify({ team_id: teamId }),
+    body: JSON.stringify({ team_id: teamId, team_name: teamName }),
   })
 }
 

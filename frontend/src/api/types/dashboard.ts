@@ -77,4 +77,6 @@ export interface CreatePersonnelRequest {
   role: string
   specializations: string[]
   regions: string[]
+  base_lat?: number
+  base_lon?: number
 }

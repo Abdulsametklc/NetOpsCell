@@ -1,8 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { PredictResponse, TelemetryInput } from '../api/types'
-import { PowerStatus, Suggestion } from '../api/types'
-import { CRITICAL_TELEMETRY, submitTelemetry } from '../api/incidentApi'
+import {
+  FaultType as FT,
+  PowerStatus,
+  PredictionMethod,
+  Priority as P,
+  Suggestion,
+} from '../api/types'
+import { CRITICAL_TELEMETRY, listIncidents, submitTelemetry } from '../api/incidentApi'
 import { ApiError } from '../api/client'
 import { AppShell } from '../components/AppShell'
 import { Button, Card, Field, Input, Select } from '../components/ui'
@@ -44,6 +50,42 @@ export function NocDashboardPage() {
   function setField<K extends keyof TelemetryInput>(key: K, value: TelemetryInput[K]) {
     setForm((f) => ({ ...f, [key]: value }))
   }
+
+  useEffect(() => {
+    // Tahmin listesi oncesi bu oturuma ozeldi (sayfa degisince kayboluyordu) - artik
+    // mount'ta backend'deki gercek vaka gecmisini cekip gosteriyoruz.
+    let cancelled = false
+    async function loadHistory() {
+      try {
+        const incidents = await listIncidents()
+        if (cancelled) return
+        const historyRows: PredictionRow[] = incidents.map((i) => ({
+          id: i.id,
+          at: i.created_at ?? new Date().toISOString(),
+          station_code: i.station_code,
+          prediction: {
+            probability: i.probability ?? 0,
+            fault_type: (i.fault_type as PredictResponse['fault_type']) ?? FT.BELIRSIZ,
+            priority: (i.priority as PredictResponse['priority']) ?? P.ORTA,
+            suggestion: (i.ai_suggestion as Suggestion) ?? Suggestion.VAKA_AC,
+            method: PredictionMethod.RULE_FALLBACK,
+            confidence_explanation: i.assigned_team_name
+              ? `Atanan ekip: ${i.assigned_team_name}`
+              : 'Geçmiş kayıt (henüz atanmadı).',
+          },
+          caseStatus: i.assigned_team_id ? 'auto_opened' : 'pending_approval',
+          incident_number: i.incident_number,
+        }))
+        setRows(historyRows)
+      } catch {
+        /* gecmis yuklenemedi - liste bos kalir, kullanici yeni telemetri gonderebilir */
+      }
+    }
+    void loadHistory()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function runTelemetry(input: TelemetryInput) {
     setBusy(true)

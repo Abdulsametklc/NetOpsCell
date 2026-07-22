@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
 from app.core.database import get_db
-from app.models import Badge, PointLedger, UserBadge, UserStats
+from app.models import Badge, PersonnelName, PointLedger, UserBadge, UserStats
 
 router = APIRouter(prefix="/api/v1/game", tags=["gamification"])
 
@@ -22,6 +22,13 @@ def _period_cutoff(period: str) -> datetime | None:
     return None
 
 
+async def _names_for(db: AsyncSession, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, str]:
+    if not user_ids:
+        return {}
+    rows = await db.execute(select(PersonnelName).where(PersonnelName.user_id.in_(user_ids)))
+    return {row.user_id: row.name for row in rows.scalars().all()}
+
+
 @router.get("/leaderboard")
 async def leaderboard(period: str = "daily", limit: int = 10, db: AsyncSession = Depends(get_db)):
     """Case Bolum 6.4: gunluk/haftalik liderlik tablosu, ilk 10, puan sirali."""
@@ -33,9 +40,13 @@ async def leaderboard(period: str = "daily", limit: int = 10, db: AsyncSession =
 
     result = await db.execute(query.order_by(func.sum(PointLedger.points).desc()).limit(limit))
     rows = result.all()
+    names = await _names_for(db, [user_id for user_id, _ in rows])
     return {
         "success": True,
-        "data": [{"user_id": str(user_id), "points": total} for user_id, total in rows],
+        "data": [
+            {"user_id": str(user_id), "points": total, "display_name": names.get(user_id)}
+            for user_id, total in rows
+        ],
         "error": None,
     }
 
@@ -75,12 +86,16 @@ async def profile(
         )
 
     badges = await _user_badges(db, user_id)
+    name_cache = await db.get(PersonnelName, user_id)
+    display_name = name_cache.name if name_cache else None
+
     stats = await db.get(UserStats, user_id)
     if stats is None:
         return {
             "success": True,
             "data": {
                 "user_id": str(user_id),
+                "display_name": display_name,
                 "total_points": 0,
                 "level": "BRONZ",
                 "resolved_count": 0,
@@ -96,6 +111,7 @@ async def profile(
         "success": True,
         "data": {
             "user_id": str(stats.user_id),
+            "display_name": display_name,
             "total_points": stats.total_points,
             "level": stats.level,
             "resolved_count": stats.resolved_count,

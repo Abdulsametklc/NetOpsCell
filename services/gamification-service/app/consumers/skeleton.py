@@ -6,6 +6,7 @@ from app.consumers.handlers import (
     handle_incident_created,
     handle_incident_evaluated,
     handle_incident_resolved,
+    handle_personnel_upserted,
     handle_sla_breached,
 )
 from app.core.database import async_session
@@ -20,6 +21,7 @@ STREAMS = [
     "incident.resolved",
     "incident.evaluated",
     "incident.sla_breached",
+    "identity.personnel.upserted",
 ]
 
 HANDLERS = {
@@ -27,6 +29,7 @@ HANDLERS = {
     "incident.resolved": handle_incident_resolved,
     "incident.evaluated": handle_incident_evaluated,
     "incident.sla_breached": handle_sla_breached,
+    "identity.personnel.upserted": handle_personnel_upserted,
 }
 
 
