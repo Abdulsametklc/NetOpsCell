@@ -202,3 +202,29 @@ Bu dosyalara **herkes** dokunur ama kural şu: **sadece kickoff'ta (T+0) birlikt
 2. **Bir checkpoint'te kendi görevini bitiremediysen** — bir sonraki checkpoint'e "borç" olarak taşınır ama mutlaka söylenir; sessizce ertelenmez (özellikle Identity/JWT gecikirse Kişi 2/3 bloklanır).
 3. **Contract değişikliği (`docs/CONTRACTS.md`)** T+0:30'dan sonra yapılacaksa, değiştiren kişi diğer ikisine **hemen** haber verir (Slack/WhatsApp mesajı yeterli, toplantı gerekmez).
 4. **Demo provası** en geç CP6'dan itibaren her checkpoint sonunda 5 dakika ayrılır: case Bölüm 11.3'teki 8 adımı baştan sona dene, neyin eksik olduğunu gör.
+
+---
+
+## 9. Checkpoint Disiplini — Adım Adım mı, Sonda mı Kontrol?
+
+**Kural: Her checkpoint'te kontrol edilir, tüm checkpoint'ler bitene kadar beklenmez.** Bu proje için bağlayıcı kuraldır — hem insanlar hem de bu repoda çalışan herhangi bir AI asistanı (Claude Code vb.) buna uyar.
+
+### Neden sonda değil, adım adım
+
+- **Hata ayıklama yüzeyi küçük kalır.** 1-1.5 saatte bir kontrol edilirse, bir şey bozulduğunda sorumlu değişiklik "son 1.5 saat" içindedir. Her şeyi sona bırakırsanız, 3 kişinin saatlerce süren değişiklikleri arasında hangi satırın neyi bozduğunu bulmak çok zaman alır.
+- **Yanlış varsayımlar erken yakalanır.** `docs/CONTRACTS.md`'deki bir şema yanlışsa, CP1'de fark etmek 10 dakikalık düzeltme; CP7'de fark etmek saatlerce kodun yeniden yazılması demektir.
+- **Docker/entegrasyon riski erken görülür.** Case'in diskalifiye kuralı ("docker compose up ile ayağa kalkmıyorsa değerlendirme dışı") sadece son ana bırakılırsa telafisi zor hale gelir.
+
+### Checkpoint kontrolü nasıl yapılır (5 dakikalık ritüel, uzun toplantı değil)
+
+1. `git pull origin main`
+2. `docker compose up --build` (ya da sadece değişen servisler) ile smoke test
+3. O checkpoint'in yukarıdaki tablodaki **"Definition of Done"** satırını birebir doğrula (tek soru: karşılanıyor mu, evet/hayır)
+4. Bozuksa **hemen orada** düzelt — bir sonraki checkpoint'e taşıma
+5. Ancak bundan sonra yeni feature branch açılır, sıradaki göreve geçilir
+
+### Erken bitiren biri boş oturmaz
+
+Paralellik bozulmasın diye: bir kişi kendi checkpoint görevini erken bitirirse, diğerlerini beklemeden **bir sonraki checkpoint'in bağımsız görevlerine** geçer (örn. Kişi 3 login ekranını bitirdiyse, Kişi 1'in JWT rotation'ını beklemeden dashboard iskeletine mock veriyle devam eder). Sadece **gerçekten entegrasyon gerektiren** adımda (örn. "gerçek login uçtan uca çalışıyor mu" testi) diğerlerinin merge'ini bekler.
+
+> **AI asistanlarına not:** Bu repoda çalışan herhangi bir Claude Code oturumu, kendi görev listesini bitirdiğinde otomatik olarak "tüm proje bitti" varsayımıyla ilerlemez — sadece kendi checkpoint'inin DoD'sini karşılayıp karşılamadığını kontrol eder, kullanıcıya bunu bildirir, ve onay olmadan bir sonraki checkpoint'in görevlerine geçmeden önce (varsa) `main`'deki güncel halin pull edilip edilmediğini sorar.
