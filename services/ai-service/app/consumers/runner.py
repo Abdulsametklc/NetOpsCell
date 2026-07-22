@@ -4,7 +4,12 @@ import logging
 
 from app.core.database import async_session
 from app.core.redis_client import redis_client
-from app.consumers.handlers import handle_incident_assigned, handle_incident_resolved, handle_personnel_upserted
+from app.consumers.handlers import (
+    handle_incident_assigned,
+    handle_incident_resolved,
+    handle_personnel_upserted,
+    handle_type_changed,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +19,7 @@ HANDLERS = {
     "identity.personnel.upserted": handle_personnel_upserted,
     "incident.assigned": handle_incident_assigned,
     "incident.resolved": handle_incident_resolved,
+    "incident.type_changed": handle_type_changed,
 }
 
 

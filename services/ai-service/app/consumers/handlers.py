@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.accuracy_feedback import AccuracyFeedback
 from app.models.team import TeamProfile, TeamWorkload
 from app.schemas.contracts import FaultType
 
@@ -55,3 +56,18 @@ async def handle_incident_resolved(db: AsyncSession, event: dict) -> None:
     if workload is not None and workload.active_incident_count > 0:
         workload.active_incident_count -= 1
         await db.commit()
+
+
+async def handle_type_changed(db: AsyncSession, event: dict) -> None:
+    """incident.type_changed -> NOC/Supervizor AI'nin atadigi turu degistirdi, bu "yanlis
+    siniflandirma" olarak kaydedilir (bkz. ARCHITECTURE.md SS8.8, GET /ai/accuracy)."""
+    db.add(
+        AccuracyFeedback(
+            incident_id=uuid.UUID(event["incident_id"]),
+            original_fault_type=FaultType(event["original_fault_type"]),
+            corrected_fault_type=FaultType(event["new_fault_type"]),
+            corrected_by=uuid.UUID(event["changed_by"]),
+            is_correct=False,
+        )
+    )
+    await db.commit()

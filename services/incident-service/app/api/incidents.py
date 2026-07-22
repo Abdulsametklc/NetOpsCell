@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.ai_client import AIServiceUnavailable, assign, predict
@@ -33,15 +33,26 @@ from app.schemas.contracts import (
     IncidentEvaluated,
     IncidentResolved,
     IncidentStatus,
+    IncidentTypeChanged,
     Priority,
     Suggestion,
     TelemetryInput,
 )
-from app.schemas.incident import EvaluationCreate, MessageCreate, ResolutionNoteCreate, StatusChangeRequest
+from app.schemas.incident import (
+    EvaluationCreate,
+    FaultTypeChangeRequest,
+    ManualAssignRequest,
+    MessageCreate,
+    ResolutionNoteCreate,
+    StatusChangeRequest,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["incidents"])
 
 MESSAGING_ROLES = {"SAHA_TEKNISYENI", "NOC_OPERATORU"}
+MANUAL_ASSIGN_ROLES = {"SUPERVIZOR", "ADMIN"}
+FAULT_TYPE_OVERRIDE_ROLES = {"NOC_OPERATORU", "SUPERVIZOR"}
+TERMINAL_STATUSES = (IncidentStatus.COZULDU, IncidentStatus.KAPANDI)
 
 
 def _incident_summary(incident: Incident) -> dict:
@@ -244,6 +255,75 @@ async def list_incidents(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Incident).order_by(Incident.created_at.desc()))
     incidents = result.scalars().all()
     return {"success": True, "data": [_incident_summary(i) for i in incidents], "error": None}
+
+
+@router.get("/incidents/queue/unassigned")
+async def unassigned_queue(db: AsyncSession = Depends(get_db)):
+    """Case Bolum 5.3: kapasite/tur eslesmesi bulunamadigi ya da AI erisilemedigi icin
+    otomatik atanamamis vakalar - Supervizor burada manuel atama yapar."""
+    result = await db.execute(
+        select(Incident)
+        .where(Incident.assigned_team_id.is_(None), Incident.current_status.notin_(TERMINAL_STATUSES))
+        .order_by(Incident.created_at)
+    )
+    incidents = result.scalars().all()
+    return {"success": True, "data": [_incident_summary(i) for i in incidents], "error": None}
+
+
+@router.get("/incidents/stats/summary")
+async def stats_summary(db: AsyncSession = Depends(get_db)):
+    """Supervizor Dashboard icin agregasyonlar (bkz. ARCHITECTURE.md SS10)."""
+    fault_type_rows = await db.execute(select(Incident.fault_type, func.count()).group_by(Incident.fault_type))
+    priority_rows = await db.execute(select(Incident.priority, func.count()).group_by(Incident.priority))
+
+    sla_outcome_rows = await db.execute(
+        select(Incident.sla_status, func.count()).where(Incident.sla_status != "ACTIVE").group_by(Incident.sla_status)
+    )
+    sla_outcomes = {row[0]: row[1] for row in sla_outcome_rows.all()}
+    met = sla_outcomes.get("MET", 0)
+    breached = sla_outcomes.get("BREACHED", 0)
+    sla_compliance_rate = round(met / (met + breached) * 100, 1) if (met + breached) > 0 else None
+
+    sla_breached_active_count = (
+        await db.execute(
+            select(func.count()).where(
+                Incident.sla_status == "BREACHED", Incident.current_status.notin_(TERMINAL_STATUSES)
+            )
+        )
+    ).scalar_one()
+
+    resolved_count = (await db.execute(select(func.count()).where(Incident.resolved_at.is_not(None)))).scalar_one()
+
+    avg_resolution_seconds = (
+        await db.execute(
+            select(func.avg(func.extract("epoch", Incident.resolved_at - Incident.created_at))).where(
+                Incident.resolved_at.is_not(None)
+            )
+        )
+    ).scalar_one()
+    avg_resolution_minutes = round(avg_resolution_seconds / 60, 1) if avg_resolution_seconds is not None else None
+
+    unassigned_queue_count = (
+        await db.execute(
+            select(func.count()).where(
+                Incident.assigned_team_id.is_(None), Incident.current_status.notin_(TERMINAL_STATUSES)
+            )
+        )
+    ).scalar_one()
+
+    return {
+        "success": True,
+        "data": {
+            "fault_type_distribution": {row[0]: row[1] for row in fault_type_rows.all()},
+            "priority_distribution": {row[0]: row[1] for row in priority_rows.all()},
+            "sla_compliance_rate": sla_compliance_rate,
+            "sla_breached_active_count": sla_breached_active_count,
+            "resolved_count": resolved_count,
+            "avg_resolution_minutes": avg_resolution_minutes,
+            "unassigned_queue_count": unassigned_queue_count,
+        },
+        "error": None,
+    }
 
 
 @router.get("/incidents/{incident_id}")
@@ -514,3 +594,119 @@ async def create_evaluation(
         },
         "error": None,
     }
+
+
+@router.patch("/incidents/{incident_id}/fault-type")
+async def change_fault_type(
+    incident_id: uuid.UUID,
+    payload: FaultTypeChangeRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Case Bolum 4.3: NOC operatoru veya Supervizor AI'nin atadigi turu degistirebilir.
+    Bu degisiklik incident.type_changed olarak AI Service'e bildirilir (dogruluk metrigi
+    icin, bkz. ARCHITECTURE.md SS8.8)."""
+    incident = await db.get(Incident, incident_id)
+    if incident is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
+        )
+    if current_user.role not in FAULT_TYPE_OVERRIDE_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "UNAUTHORIZED_TRANSITION", "message": "Bu role tur degistirme yetkisi yok"},
+        )
+
+    original_fault_type = incident.fault_type
+    if original_fault_type == payload.fault_type:
+        return {"success": True, "data": _incident_summary(incident), "error": None}
+
+    incident.fault_type = payload.fault_type
+    incident.is_manual_override = True
+    await db.commit()
+    await db.refresh(incident)
+
+    await publish_event(
+        "incident.type_changed",
+        IncidentTypeChanged(
+            incident_id=str(incident.id),
+            original_fault_type=original_fault_type,
+            new_fault_type=payload.fault_type,
+            changed_by=str(current_user.user_id),
+            changed_at=datetime.now(timezone.utc),
+        ),
+    )
+
+    return {"success": True, "data": _incident_summary(incident), "error": None}
+
+
+@router.patch("/incidents/{incident_id}/assign")
+async def manual_assign(
+    incident_id: uuid.UUID,
+    payload: ManualAssignRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Case Bolum 5.3: Supervizor (veya Admin) her zaman manuel atama yapabilir. CP6 kapsaminda
+    sadece henuz atanmamis (YENI) vakalar icin - atanmis bir vakayi yeniden atamak (reassign)
+    kapsam disi birakildi."""
+    incident = await db.get(Incident, incident_id)
+    if incident is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
+        )
+    if current_user.role not in MANUAL_ASSIGN_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "UNAUTHORIZED_TRANSITION", "message": "Bu role manuel atama yetkisi yok"},
+        )
+
+    try:
+        validate_transition(
+            from_status=incident.current_status,
+            to_status=IncidentStatus.ATANDI,
+            actor_role=current_user.role,
+            actor_user_id=current_user.user_id,
+            assigned_team_id=incident.assigned_team_id,
+        )
+    except InvalidTransition as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "INVALID_TRANSITION", "message": str(exc)},
+        ) from exc
+    except UnauthorizedTransition as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "UNAUTHORIZED_TRANSITION", "message": str(exc)},
+        ) from exc
+
+    history = IncidentStatusHistory(
+        incident_id=incident.id,
+        from_status=incident.current_status,
+        to_status=IncidentStatus.ATANDI,
+        changed_by=current_user.user_id,
+        note=f"Manuel atama: {payload.team_name}",
+    )
+    db.add(history)
+
+    incident.assigned_team_id = payload.team_id
+    incident.assigned_team_name = payload.team_name
+    incident.current_status = IncidentStatus.ATANDI
+    await db.commit()
+    await db.refresh(incident)
+
+    await publish_event(
+        "incident.assigned",
+        IncidentAssigned(
+            incident_id=str(incident.id),
+            team_id=str(payload.team_id),
+            team_name=payload.team_name,
+            score=0.0,
+            assigned_by=str(current_user.user_id),
+            assigned_at=datetime.now(timezone.utc),
+        ),
+    )
+
+    return {"success": True, "data": _incident_summary(incident), "error": None}

@@ -1,6 +1,8 @@
 """Kaynak: docs/CONTRACTS.md. Bu dosya elle senkronize edilir; CONTRACTS.md degisirse buraya da yansitilmali."""
 
+from datetime import datetime
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -78,3 +80,12 @@ class AssignResponse(BaseModel):
     team_name: str | None = None
     score: float | None = None
     components: ScoreComponents | None = None
+
+
+class IncidentTypeChanged(BaseModel):
+    event_type: Literal["incident.type_changed"] = "incident.type_changed"
+    incident_id: str
+    original_fault_type: FaultType
+    new_fault_type: FaultType
+    changed_by: str
+    changed_at: datetime
