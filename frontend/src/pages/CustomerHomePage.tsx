@@ -47,7 +47,7 @@ export function CustomerHomePage() {
         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-tc-yellow-100 text-2xl dark:bg-tc-yellow-500/15">
           📶
         </span>
-        <h1 className="text-xl font-semibold">Hoş geldiniz{user?.first_name ? `, ${user.first_name}` : ''}</h1>
+        <h1 className="text-2xl font-bold">Hoş geldiniz{user?.first_name ? `, ${user.first_name}` : ''}</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Turkcell şebeke sağlığını buradan takip edebilirsiniz. Kişiye özel arıza takibi (kaydettiğiniz
           hattınıza bağlı) yakında eklenecek.

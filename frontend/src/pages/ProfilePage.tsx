@@ -43,7 +43,7 @@ export function ProfilePage() {
       {!loading && !error && profile && (
         <div className="space-y-6">
           <Card className="bg-gradient-to-br from-tc-navy-900 to-tc-navy-800 p-6 text-white dark:border-tc-navy-700">
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-2xl font-bold">
               {profile.display_name ?? authUser?.first_name ?? 'Operatör'}
             </h2>
             <p className="mt-1 text-sm text-white/70">
@@ -58,7 +58,7 @@ export function ProfilePage() {
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
               <div>
                 <dt className="text-white/50">Toplam puan</dt>
-                <dd className="font-mono text-lg font-semibold text-tc-yellow-400">{profile.total_points}</dd>
+                <dd className="font-mono text-xl font-bold text-tc-yellow-400">{profile.total_points}</dd>
               </div>
               <div>
                 <dt className="text-white/50">Çözülen vaka</dt>

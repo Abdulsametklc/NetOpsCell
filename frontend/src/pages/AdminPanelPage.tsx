@@ -73,7 +73,7 @@ export function AdminPanelPage() {
     <AppShell title="NetOpsCell — Admin">
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Personel hesabı oluştur</h2>
+          <h2 className="mb-3 text-xl font-bold">Personel hesabı oluştur</h2>
           <Card as="form" onSubmit={onCreate} className="space-y-3 p-4">
             {(
               [
@@ -139,7 +139,7 @@ export function AdminPanelPage() {
 
         <section>
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">Audit log</h2>
+            <h2 className="text-xl font-bold">Audit log</h2>
             <button
               type="button"
               className="text-xs font-medium text-tc-navy-700 hover:underline dark:text-tc-yellow-400"
