@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Env files (secrets — never commit, only .env.example)
+.env
+services/*/.env
+
+# Editor / OS
+.DS_Store
