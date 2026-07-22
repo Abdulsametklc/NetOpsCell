@@ -4,7 +4,9 @@ import type {
   AuditLogRow,
   CreatePersonnelRequest,
   NamedCount,
+  PriorityTrendPoint,
   StatsSummary,
+  TeamPerformanceRow,
   UnassignedIncident,
 } from './types'
 import { apiFetch, getApiBaseUrl } from './client'
@@ -30,6 +32,8 @@ interface RawStatsSummary {
   resolved_count: number
   avg_resolution_minutes: number | null
   unassigned_queue_count: number
+  priority_trend: PriorityTrendPoint[]
+  team_performance: TeamPerformanceRow[]
 }
 
 function toNamedCounts(dist: Record<string, number>): NamedCount[] {
@@ -40,12 +44,10 @@ function adaptStatsSummary(raw: RawStatsSummary): StatsSummary {
   return {
     by_fault_type: toNamedCounts(raw.fault_type_distribution ?? {}),
     by_priority: toNamedCounts(raw.priority_distribution ?? {}),
-    // incident-service henüz günlük trend agregasyonu üretmiyor - boş dizi güvenli varsayılan.
-    priority_trend: [],
+    priority_trend: raw.priority_trend ?? [],
     sla_compliance_pct: raw.sla_compliance_rate ?? 0,
     sla_breached_active: raw.sla_breached_active_count ?? 0,
-    // incident-service henüz ekip bazlı kırılım üretmiyor - boş dizi güvenli varsayılan.
-    teams: [],
+    teams: raw.team_performance ?? [],
   }
 }
 

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -53,6 +53,7 @@ MESSAGING_ROLES = {"SAHA_TEKNISYENI", "NOC_OPERATORU"}
 MANUAL_ASSIGN_ROLES = {"SUPERVIZOR", "ADMIN"}
 FAULT_TYPE_OVERRIDE_ROLES = {"NOC_OPERATORU", "SUPERVIZOR"}
 TERMINAL_STATUSES = (IncidentStatus.COZULDU, IncidentStatus.KAPANDI)
+TR_WEEKDAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
 
 
 def _incident_summary(incident: Incident) -> dict:
@@ -318,6 +319,76 @@ async def stats_summary(db: AsyncSession = Depends(get_db)):
         )
     ).scalar_one()
 
+    # Son 7 gun (bugun dahil), gunluk oncelik kirilimi - Supervizor Dashboard cizgi grafigi.
+    now = datetime.now(timezone.utc)
+    trend_start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_expr = func.date_trunc("day", Incident.created_at)
+    trend_rows = await db.execute(
+        select(day_expr.label("day"), Incident.priority, func.count())
+        .where(Incident.created_at >= trend_start, Incident.priority.is_not(None))
+        .group_by(day_expr, Incident.priority)
+    )
+    trend_map: dict[str, dict[str, int]] = {}
+    for day_val, priority_val, count_val in trend_rows.all():
+        key = day_val.date().isoformat()
+        trend_map.setdefault(key, {})[priority_val] = count_val
+
+    priority_trend = []
+    for offset in range(7):
+        day_date = (trend_start + timedelta(days=offset)).date()
+        counts = trend_map.get(day_date.isoformat(), {})
+        priority_trend.append(
+            {
+                "day": TR_WEEKDAYS[day_date.weekday()],
+                "DUSUK": counts.get("DUSUK", 0),
+                "ORTA": counts.get("ORTA", 0),
+                "YUKSEK": counts.get("YUKSEK", 0),
+                "KRITIK": counts.get("KRITIK", 0),
+            }
+        )
+
+    # Ekip bazli performans - assigned_team_name incident-service kendi tablosunda
+    # denormalize tutuluyor (database-per-service, identity/ai-service'e sorgu atmadan
+    # gosterilebiliyor). Reopen orani: cozulen vakanin degerlendirmesi is_permanent=False ise.
+    team_rows = await db.execute(
+        select(
+            Incident.assigned_team_id,
+            Incident.assigned_team_name,
+            func.count().filter(Incident.resolved_at.is_not(None)).label("resolved"),
+            func.avg(func.extract("epoch", Incident.resolved_at - Incident.created_at))
+            .filter(Incident.resolved_at.is_not(None))
+            .label("avg_seconds"),
+        )
+        .where(Incident.assigned_team_id.is_not(None))
+        .group_by(Incident.assigned_team_id, Incident.assigned_team_name)
+    )
+    reopen_rows = await db.execute(
+        select(
+            Incident.assigned_team_id,
+            func.count().filter(IncidentEvaluation.is_permanent.is_(False)).label("reopened"),
+            func.count(IncidentEvaluation.id).label("total_eval"),
+        )
+        .join(IncidentEvaluation, IncidentEvaluation.incident_id == Incident.id)
+        .where(Incident.assigned_team_id.is_not(None))
+        .group_by(Incident.assigned_team_id)
+    )
+    reopen_map = {row[0]: (row[1], row[2]) for row in reopen_rows.all()}
+
+    team_performance = []
+    for team_id, team_name, resolved, avg_seconds in team_rows.all():
+        if resolved == 0:
+            continue
+        reopened, total_eval = reopen_map.get(team_id, (0, 0))
+        team_performance.append(
+            {
+                "team_id": str(team_id),
+                "team_name": team_name or "Bilinmeyen ekip",
+                "resolved": resolved,
+                "avg_minutes": round(avg_seconds / 60, 1) if avg_seconds else 0.0,
+                "reopen_rate": round(reopened / total_eval, 2) if total_eval else 0.0,
+            }
+        )
+
     return {
         "success": True,
         "data": {
@@ -328,6 +399,8 @@ async def stats_summary(db: AsyncSession = Depends(get_db)):
             "resolved_count": resolved_count,
             "avg_resolution_minutes": avg_resolution_minutes,
             "unassigned_queue_count": unassigned_queue_count,
+            "priority_trend": priority_trend,
+            "team_performance": team_performance,
         },
         "error": None,
     }
