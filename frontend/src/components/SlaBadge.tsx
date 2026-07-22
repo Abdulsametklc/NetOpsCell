@@ -30,11 +30,11 @@ export function computeSla(iso: string | null | undefined, slaStatus?: string | 
 }
 
 const toneClass: Record<SlaTone, string> = {
-  ok: 'bg-emerald-950/50 text-emerald-300 border-emerald-800',
-  warn: 'bg-amber-950/50 text-amber-300 border-amber-700',
-  urgent: 'bg-orange-950/60 text-orange-300 border-orange-700',
-  breached: 'bg-rose-950/60 text-rose-300 border-rose-700',
-  idle: 'bg-slate-900 text-slate-500 border-slate-800',
+  ok: 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800',
+  warn: 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700',
+  urgent: 'bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-700',
+  breached: 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700',
+  idle: 'bg-slate-100 text-slate-500 border-slate-300 dark:bg-tc-navy-900 dark:text-slate-500 dark:border-tc-navy-800',
 }
 
 interface SlaBadgeProps {

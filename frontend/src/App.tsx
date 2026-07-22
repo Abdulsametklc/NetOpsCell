@@ -4,6 +4,7 @@ import { NotificationsBootstrap } from './components/NotificationsBootstrap'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ToastHost } from './components/ToastHost'
 import { Role } from './api/types'
+import { ThemeProvider } from './lib/theme'
 import { RoleHomeRedirect } from './lib/roleRoutes'
 import { CustomerHomePage } from './pages/CustomerHomePage'
 import { AdminPanelPage } from './pages/AdminPanelPage'
@@ -16,6 +17,7 @@ import { TechnicianDashboardPage } from './pages/TechnicianDashboardPage'
 
 export default function App() {
   return (
+    <ThemeProvider>
     <BrowserRouter>
       <NotificationsBootstrap />
       <ToastHost />
@@ -84,5 +86,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </ThemeProvider>
   )
 }

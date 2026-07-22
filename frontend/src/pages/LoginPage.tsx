@@ -2,9 +2,13 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { authModeLabel, fetchMe, login } from '../api/authApi'
+import { fetchMe, login } from '../api/authApi'
 import { useAuthStore } from '../store/authStore'
 import { homePathForRole } from '../lib/roleRoutes'
+import { ThemeToggle } from '../components/ThemeToggle'
+import { LogoMark } from '../components/LogoMark'
+import { Teknocan } from '../components/Teknocan'
+import { Button, Field, Input, Pill } from '../components/ui'
 
 type Tab = 'personnel' | 'customer'
 
@@ -53,9 +57,7 @@ export function LoginPage() {
         if (code === 'ACCOUNT_LOCKED') {
           const sec = err.envelope?.error?.retry_after_seconds
           setLockedHint(
-            sec
-              ? `Hesap kilitli. ${sec} sn sonra tekrar deneyin.`
-              : 'Hesap kilitli. Daha sonra tekrar deneyin.',
+            sec ? `Hesap kilitli. ${sec} sn sonra tekrar deneyin.` : 'Hesap kilitli. Daha sonra tekrar deneyin.',
           )
         }
         setError(err.message)
@@ -68,108 +70,104 @@ export function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <h1 className="text-2xl font-semibold tracking-tight mb-1">NetOpsCell</h1>
-        <p className="text-slate-400 text-sm mb-6">Giriş — {authModeLabel()}</p>
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-tc-navy-900 via-tc-navy-600 to-tc-navy-950 text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,200,0,0.12),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_100%,rgba(255,200,0,0.08),transparent_45%)]" />
 
-        <div className="flex gap-2 mb-4">
-          <button
-            type="button"
-            className={`flex-1 rounded px-3 py-2 text-sm ${
-              tab === 'personnel' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
-            }`}
-            onClick={() => setTab('personnel')}
-          >
-            Personel
-          </button>
-          <button
-            type="button"
-            className={`flex-1 rounded px-3 py-2 text-sm ${
-              tab === 'customer' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
-            }`}
-            onClick={() => setTab('customer')}
-          >
-            Müşteri (GSM+OTP)
-          </button>
+      <div className="relative flex items-center justify-between px-6 py-5">
+        <div className="flex items-center gap-2">
+          <LogoMark />
+          <span className="text-lg font-bold tracking-tight">
+            NetOps<span className="text-tc-yellow-400">Cell</span>
+          </span>
         </div>
-
-        <form onSubmit={onSubmit} className="space-y-4 rounded-lg border border-slate-800 bg-slate-900/60 p-5">
-          {tab === 'personnel' ? (
-            <>
-              <label className="block text-sm">
-                <span className="text-slate-400">E-posta</span>
-                <input
-                  className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-                  type="email"
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="text-slate-400">Şifre</span>
-                <input
-                  className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required={!import.meta.env.VITE_USE_AUTH_MOCK}
-                />
-                {import.meta.env.VITE_USE_AUTH_MOCK === 'true' && (
-                  <span className="mt-1 block text-xs text-slate-500">
-                    Mock: şifre serbest. Rol için e-postada admin/noc/super kullan.
-                  </span>
-                )}
-              </label>
-            </>
-          ) : (
-            <>
-              <label className="block text-sm">
-                <span className="text-slate-400">GSM</span>
-                <input
-                  className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-                  inputMode="tel"
-                  value={gsm}
-                  onChange={(e) => setGsm(e.target.value)}
-                  required
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="text-slate-400">OTP</span>
-                <input
-                  className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  required
-                />
-                <span className="mt-1 block text-xs text-slate-500">Simülasyon kodu: 1234</span>
-              </label>
-            </>
-          )}
-
-          {error && (
-            <p className="text-sm text-rose-400" role="alert">
-              {error}
-            </p>
-          )}
-          {lockedHint && (
-            <p className="text-sm text-amber-400" role="status">
-              {lockedHint}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded bg-sky-600 py-2.5 text-sm font-medium hover:bg-sky-500 disabled:opacity-60"
-          >
-            {submitting ? 'Giriş yapılıyor…' : 'Giriş yap'}
-          </button>
-        </form>
+        <ThemeToggle />
       </div>
+
+      <div className="relative flex min-h-[calc(100vh-88px)] items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-bold tracking-tight">Şebeke Operasyon Platformu</h1>
+            <p className="mt-1 text-sm text-white/60">Devam etmek için giriş yapın</p>
+          </div>
+
+          <div className="mb-4 flex gap-2 rounded-full bg-white/5 p-1">
+            <Pill
+              active={tab === 'personnel'}
+              className="flex-1"
+              type="button"
+              onClick={() => setTab('personnel')}
+            >
+              Personel
+            </Pill>
+            <Pill
+              active={tab === 'customer'}
+              className="flex-1"
+              type="button"
+              onClick={() => setTab('customer')}
+            >
+              Müşteri (GSM+OTP)
+            </Pill>
+          </div>
+
+          <form
+            onSubmit={onSubmit}
+            className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-sm"
+          >
+            {tab === 'personnel' ? (
+              <>
+                <Field label="E-posta">
+                  <Input
+                    type="email"
+                    autoComplete="username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Şifre">
+                  <Input
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required={!import.meta.env.VITE_USE_AUTH_MOCK}
+                  />
+                </Field>
+              </>
+            ) : (
+              <>
+                <Field label="GSM">
+                  <Input inputMode="tel" value={gsm} onChange={(e) => setGsm(e.target.value)} required />
+                </Field>
+                <Field label="OTP">
+                  <Input value={otp} onChange={(e) => setOtp(e.target.value)} required />
+                </Field>
+              </>
+            )}
+
+            {error && (
+              <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300" role="alert">
+                {error}
+              </p>
+            )}
+            {lockedHint && (
+              <p
+                className="rounded-lg border border-tc-yellow-500/30 bg-tc-yellow-500/10 px-3 py-2 text-sm text-tc-yellow-300"
+                role="status"
+              >
+                {lockedHint}
+              </p>
+            )}
+
+            <Button type="submit" variant="primary" disabled={submitting} className="w-full">
+              {submitting ? 'Giriş yapılıyor…' : 'Giriş yap'}
+            </Button>
+          </form>
+        </div>
+      </div>
+
+      <Teknocan />
     </main>
   )
 }

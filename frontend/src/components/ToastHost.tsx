@@ -1,10 +1,13 @@
 import { useToastStore } from '../store/toastStore'
 
 const kindClass: Record<string, string> = {
-  info: 'border-sky-700 bg-sky-950/90',
-  success: 'border-emerald-700 bg-emerald-950/90',
-  badge: 'border-amber-600 bg-amber-950/90',
-  warning: 'border-orange-700 bg-orange-950/90',
+  info: 'border-tc-navy-300 bg-white text-tc-navy-900 dark:border-tc-navy-600 dark:bg-tc-navy-900 dark:text-slate-100',
+  success:
+    'border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/90 dark:text-emerald-100',
+  badge:
+    'border-tc-yellow-400 bg-tc-yellow-50 text-tc-navy-900 dark:border-tc-yellow-600 dark:bg-tc-navy-900 dark:text-tc-yellow-100',
+  warning:
+    'border-orange-300 bg-orange-50 text-orange-900 dark:border-orange-700 dark:bg-orange-950/90 dark:text-orange-100',
 }
 
 /** CP4 realtime toast iskeleti — CP5'te Notification Hub WS bağlanır */
@@ -20,16 +23,16 @@ export function ToastHost() {
         <div
           key={t.id}
           role="status"
-          className={`rounded-lg border px-4 py-3 text-sm text-slate-100 shadow-lg ${kindClass[t.kind] ?? kindClass.info}`}
+          className={`rounded-lg border px-4 py-3 text-sm shadow-lg ${kindClass[t.kind] ?? kindClass.info}`}
         >
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="font-medium">{t.title}</p>
-              {t.message && <p className="mt-0.5 text-xs text-slate-300">{t.message}</p>}
+              <p className="font-semibold">{t.title}</p>
+              {t.message && <p className="mt-0.5 text-xs opacity-80">{t.message}</p>}
             </div>
             <button
               type="button"
-              className="text-slate-400 hover:text-white"
+              className="opacity-60 hover:opacity-100"
               onClick={() => dismiss(t.id)}
               aria-label="Kapat"
             >

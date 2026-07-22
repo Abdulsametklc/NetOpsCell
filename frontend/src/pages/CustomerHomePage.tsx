@@ -1,30 +1,22 @@
-import { useNavigate } from 'react-router-dom'
-import { logout } from '../api/authApi'
+import { AppShell } from '../components/AppShell'
+import { Card } from '../components/ui'
 import { useAuthStore } from '../store/authStore'
 
 /** CP2 stub — müşteri ekranları sonraki checkpoint'lerde */
 export function CustomerHomePage() {
   const user = useAuthStore((s) => s.user)
-  const navigate = useNavigate()
-
-  async function onLogout() {
-    await logout()
-    navigate('/login', { replace: true })
-  }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center gap-4 p-8">
-      <h1 className="text-2xl font-semibold">NetOpsCell</h1>
-      <p className="text-slate-400 text-sm">
-        Müşteri oturumu ({user?.gsm ?? user?.id}) — panel CP3+
-      </p>
-      <button
-        type="button"
-        onClick={onLogout}
-        className="rounded border border-slate-700 px-3 py-1.5 text-sm hover:bg-slate-900"
-      >
-        Çıkış
-      </button>
-    </main>
+    <AppShell title="NetOpsCell — Müşteri" subtitle="Şebeke durumu">
+      <Card className="flex flex-col items-center gap-2 p-10 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-tc-yellow-100 text-2xl dark:bg-tc-yellow-500/15">
+          📶
+        </span>
+        <h1 className="text-xl font-semibold">Hoş geldiniz</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Müşteri oturumu ({user?.gsm ?? user?.id}) — kişisel arıza takip paneli yakında.
+        </p>
+      </Card>
+    </AppShell>
   )
 }
