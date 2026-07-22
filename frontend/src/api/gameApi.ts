@@ -18,7 +18,6 @@ export async function fetchLeaderboard(
 
   const envelope = await apiFetch<LeaderboardEntry[]>(
     `/api/v1/game/leaderboard?period=${period}&limit=${limit}`,
-    { skipAuth: true },
   )
   const rows = envelope.data ?? []
   return rows.map((r, i) => ({ ...r, rank: r.rank ?? i + 1 }))
@@ -31,9 +30,7 @@ export async function fetchGameProfile(userId?: string): Promise<GameProfile> {
 
   // Backend iskelet: GET /profile/{user_id} ( /me henüz yok )
   const id = userId ?? useAuthStore.getState().user?.id ?? DEMO_USER_ID
-  const envelope = await apiFetch<GameProfile>(`/api/v1/game/profile/${id}`, {
-    skipAuth: true,
-  })
+  const envelope = await apiFetch<GameProfile>(`/api/v1/game/profile/${id}`)
   if (!envelope.data) throw new Error('Profil bulunamadı')
   return envelope.data
 }

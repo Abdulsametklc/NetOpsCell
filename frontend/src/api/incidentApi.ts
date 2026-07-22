@@ -173,7 +173,7 @@ export async function listIncidents(params?: {
   const q = new URLSearchParams()
   if (params?.assigned_to_me) q.set('assigned_to_me', 'true')
   const path = `/api/v1/incidents${q.toString() ? `?${q}` : ''}`
-  const envelope = await apiFetch<IncidentListItem[]>(path, { skipAuth: true })
+  const envelope = await apiFetch<IncidentListItem[]>(path)
   return envelope.data ?? []
 }
 
