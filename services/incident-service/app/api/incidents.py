@@ -250,9 +250,16 @@ async def submit_telemetry(payload: TelemetryInput, db: AsyncSession = Depends(g
 
 
 @router.get("/incidents")
-async def list_incidents(db: AsyncSession = Depends(get_db)):
-    """CP2 iskelet: rol bazli scope ve filtreler CP6+ icinde eklenecek (bkz. TASK_SPLIT.md)."""
-    result = await db.execute(select(Incident).order_by(Incident.created_at.desc()))
+async def list_incidents(
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """CP6: rol bazli scope (case SS3.3 - Saha Teknisyeni sadece kendine atanan
+    vakalari gorur, NOC/Supervizor/Admin tumunu gorur)."""
+    query = select(Incident)
+    if current_user.role == "SAHA_TEKNISYENI":
+        query = query.where(Incident.assigned_team_id == current_user.user_id)
+    result = await db.execute(query.order_by(Incident.created_at.desc()))
     incidents = result.scalars().all()
     return {"success": True, "data": [_incident_summary(i) for i in incidents], "error": None}
 
@@ -327,9 +334,20 @@ async def stats_summary(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/incidents/{incident_id}")
-async def get_incident(incident_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_incident(
+    incident_id: uuid.UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     incident = await db.get(Incident, incident_id)
     if incident is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
+        )
+    if current_user.role == "SAHA_TEKNISYENI" and current_user.user_id != incident.assigned_team_id:
+        # IDOR korumasi (case SS10 - jüri "kayit ID degistirerek baskasinin verisini
+        # gorme" senaryosunu dener): kaynagin var oldugunu sizdirmamak icin 404.
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},

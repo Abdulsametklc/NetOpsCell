@@ -17,10 +17,10 @@ Arıza vakalarının yaşam döngüsünü yönetir: telemetri girişi, AI Servic
 | Method | Path | Rol | Açıklama |
 |---|---|---|---|
 | POST | `/api/v1/telemetry` | — | Telemetri girişi → AI tahmini + otomatik atama denemesi |
-| GET | `/api/v1/incidents` | — | Tüm vakalar (rol bazlı filtreleme henüz CP6 kapsamına girmedi) |
+| GET | `/api/v1/incidents` | auth header zorunlu | Saha Teknisyeni sadece kendine atananları, diğer roller tümünü görür (IDOR koruması, CP6) |
 | GET | `/api/v1/incidents/queue/unassigned` | — | Atanmamış/kuyrukta bekleyen vakalar |
 | GET | `/api/v1/incidents/stats/summary` | — | Süpervizör Dashboard agregasyonları (tür/öncelik dağılımı, SLA uyumu, ortalama müdahale süresi) |
-| GET | `/api/v1/incidents/{id}` | — | Vaka detayı |
+| GET | `/api/v1/incidents/{id}` | auth header zorunlu | Vaka detayı — Saha Teknisyeni kendine atanmamış bir vakada 404 alır (IDOR koruması) |
 | PATCH | `/api/v1/incidents/{id}/status` | Durum makinesine göre (auth header zorunlu) | Durum geçişi; `COZULDU` için çözüm notu zorunlu |
 | POST | `/api/v1/incidents/{id}/messages` | Atanan Saha Teknisyeni, NOC Operatörü | Vaka içi mesaj (thread) |
 | GET | `/api/v1/incidents/{id}/messages` | — | Mesaj geçmişi |
