@@ -1,5 +1,5 @@
 from app.core.llm_client import LLMUnavailable, diagnose
-from app.core.rule_fallback import rule_based_predict
+from app.core.ml_fallback import ml_predict
 from app.core.thresholds import derive_priority, derive_suggestion
 from app.schemas.contracts import PredictionMethod, PredictResponse, TelemetryInput
 
@@ -10,9 +10,9 @@ async def predict(payload: TelemetryInput) -> PredictResponse:
         method = PredictionMethod.LLM
         explanation = rationale
     except LLMUnavailable as exc:
-        probability, fault_type = rule_based_predict(payload)
-        method = PredictionMethod.RULE_FALLBACK
-        explanation = f"Kural tabanli fallback (LLM kullanilamadi: {exc})"
+        probability, fault_type = ml_predict(payload)
+        method = PredictionMethod.ML_MODEL
+        explanation = f"Egitilmis ML modeli fallback (LLM kullanilamadi: {exc})"
 
     return PredictResponse(
         probability=probability,
