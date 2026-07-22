@@ -8,10 +8,10 @@ export function homePathForRole(role: string | null | undefined): string {
     case Role.SAHA_TEKNISYENI:
       return '/teknisyen'
     case Role.NOC_OPERATORU:
-      return '/teknisyen' // NOC UI CP3; şimdilik teknisyen iskeleti görünür
+      return '/noc'
     case Role.SUPERVIZOR:
     case Role.ADMIN:
-      return '/teknisyen'
+      return '/noc'
     case Role.MUSTERI:
       return '/musteri'
     default:

@@ -4,6 +4,7 @@ import { Role } from './api/types'
 import { RoleHomeRedirect } from './lib/roleRoutes'
 import { CustomerHomePage } from './pages/CustomerHomePage'
 import { LoginPage } from './pages/LoginPage'
+import { NocDashboardPage } from './pages/NocDashboardPage'
 import { TechnicianDashboardPage } from './pages/TechnicianDashboardPage'
 
 export default function App() {
@@ -23,15 +24,18 @@ export default function App() {
         <Route
           path="/teknisyen"
           element={
-            <ProtectedRoute
-              roles={[
-                Role.SAHA_TEKNISYENI,
-                Role.NOC_OPERATORU,
-                Role.SUPERVIZOR,
-                Role.ADMIN,
-              ]}
-            >
+            <ProtectedRoute roles={[Role.SAHA_TEKNISYENI, Role.SUPERVIZOR, Role.ADMIN]}>
               <TechnicianDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/noc"
+          element={
+            <ProtectedRoute
+              roles={[Role.NOC_OPERATORU, Role.SUPERVIZOR, Role.ADMIN]}
+            >
+              <NocDashboardPage />
             </ProtectedRoute>
           }
         />
