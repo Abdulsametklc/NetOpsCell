@@ -25,7 +25,10 @@ async def predict(payload: TelemetryInput) -> PredictResponse:
                     json=payload.model_dump(mode="json"),
                 )
                 response.raise_for_status()
-                return PredictResponse.model_validate(response.json())
+                # AI Service, sistem genelindeki standart {success, data, error} zarfini
+                # kullanir (bkz. ARCHITECTURE.md SS8.2) - asil PredictResponse "data" altinda.
+                envelope = response.json()
+                return PredictResponse.model_validate(envelope["data"])
         except (httpx.TimeoutException, httpx.ConnectError, httpx.HTTPStatusError) as exc:
             last_error = exc
             if attempt == 0:

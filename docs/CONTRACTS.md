@@ -80,7 +80,7 @@ class TelemetryInput(BaseModel):
 
 **Request:** `TelemetryInput` ile aynı şema (`PredictRequest = TelemetryInput`).
 
-**Response — 200 OK:**
+**Response — 200 OK:** Aşağıdaki `PredictResponse`, sistem genelindeki standart `{success, data, error}` zarfının **`data`** alanının içeriğidir (zarfın kendisi değil) — yani gerçek HTTP body'si `{"success": true, "data": {...PredictResponse alanları...}, "error": null}` şeklindedir. Tüketen taraf önce zarfı açıp `data` alanını `PredictResponse`'a validate etmelidir.
 
 ```python
 class PredictResponse(BaseModel):
