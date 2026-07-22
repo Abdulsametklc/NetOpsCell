@@ -1,4 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BadgeModal } from './components/BadgeModal'
+import { NotificationsBootstrap } from './components/NotificationsBootstrap'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ToastHost } from './components/ToastHost'
 import { Role } from './api/types'
@@ -13,7 +15,9 @@ import { TechnicianDashboardPage } from './pages/TechnicianDashboardPage'
 export default function App() {
   return (
     <BrowserRouter>
+      <NotificationsBootstrap />
       <ToastHost />
+      <BadgeModal />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<RoleHomeRedirect />} />

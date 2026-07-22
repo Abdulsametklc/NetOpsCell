@@ -11,4 +11,5 @@ export interface IncidentListItem {
   priority: Priority | string | null
   assigned_team_name?: string | null
   sla_due_at?: string | null
+  sla_status?: 'ACTIVE' | 'MET' | 'BREACHED' | string | null
 }
