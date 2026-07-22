@@ -34,10 +34,18 @@ class UserPublic(BaseModel):
     last_name: str
     gsm: str | None = None
     email: str | None = None
+    specializations: list[str] = []
+    regions: list[str] = []
+
+
+class TokenPair(BaseModel):
+    access_token: str
+    refresh_token: str
 
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
     user: UserPublic
 
@@ -52,3 +60,27 @@ class PersonnelCreateRequest(BaseModel):
     role: PersonnelRole
     specializations: list[str] = []
     regions: list[str] = []
+
+
+class LoginRequest(BaseModel):
+    """Personel: {email, password}. Müşteri: {gsm, otp}. Tek uçtan iki akış da
+    kabul edilir (TASK_SPLIT.md §0 - "login (kayıt/giriş)")."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: str | None = None
+    password: str | None = None
+    gsm: str | None = None
+    otp: str | None = None
+
+
+class RefreshRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    refresh_token: str
