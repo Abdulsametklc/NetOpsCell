@@ -11,7 +11,8 @@ SYSTEM_ACTOR_ID = uuid.UUID("00000000-0000-0000-0000-000000000000")
 # (parca tedariki, 24 saat sonra otomatik kapanma) bu gecisleri tetiklemesi icin kullanilan
 # ozel bir aktor degeridir.
 ALLOWED_TRANSITIONS: dict[tuple[IncidentStatus, IncidentStatus], set[str]] = {
-    (IncidentStatus.YENI, IncidentStatus.ATANDI): {"SYSTEM", "SUPERVIZOR"},
+    # ARCHITECTURE.md SS3.1 RBAC matrisi: "Manuel atama" hem Supervizor hem Admin'e acik.
+    (IncidentStatus.YENI, IncidentStatus.ATANDI): {"SYSTEM", "SUPERVIZOR", "ADMIN"},
     (IncidentStatus.ATANDI, IncidentStatus.YOLDA): {"SAHA_TEKNISYENI"},
     (IncidentStatus.YOLDA, IncidentStatus.MUDAHALE_EDILIYOR): {"SAHA_TEKNISYENI"},
     (IncidentStatus.MUDAHALE_EDILIYOR, IncidentStatus.PARCA_BEKLENIYOR): {"SAHA_TEKNISYENI"},

@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.accuracy import compute_accuracy_by_category, compute_overall_accuracy
 from app.core.assignment import pick_best, score_candidates
 from app.core.database import get_db
 from app.core.predictor import predict
@@ -64,3 +65,14 @@ async def assign_endpoint(payload: AssignRequest, db: AsyncSession = Depends(get
         },
         "error": None,
     }
+
+
+@router.get("/accuracy")
+async def accuracy_endpoint(breakdown: str | None = None, db: AsyncSession = Depends(get_db)):
+    """Case Bolum 5.4: dogru/toplam*100. breakdown=category ile kategori bazli kirilim
+    (bonus +3, bkz. ARCHITECTURE.md SS8.8)."""
+    overall = await compute_overall_accuracy(db)
+    data = {**overall}
+    if breakdown == "category":
+        data["by_category"] = await compute_accuracy_by_category(db)
+    return {"success": True, "data": data, "error": None}

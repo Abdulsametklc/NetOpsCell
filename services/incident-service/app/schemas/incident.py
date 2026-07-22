@@ -1,11 +1,22 @@
+import uuid
+
 from pydantic import BaseModel, Field
 
-from app.schemas.contracts import IncidentStatus
+from app.schemas.contracts import FaultType, IncidentStatus
 
 
 class StatusChangeRequest(BaseModel):
     to_status: IncidentStatus
     note: str | None = None
+
+
+class FaultTypeChangeRequest(BaseModel):
+    fault_type: FaultType
+
+
+class ManualAssignRequest(BaseModel):
+    team_id: uuid.UUID
+    team_name: str = Field(min_length=1, max_length=128)
 
 
 class MessageCreate(BaseModel):
