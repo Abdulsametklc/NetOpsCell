@@ -36,7 +36,7 @@ export async function login(body: LoginRequest): Promise<TokenPair> {
   const envelope = await apiFetch<TokenPair>('/api/v1/auth/login', {
     method: 'POST',
     body: JSON.stringify(body),
-    skipAuth: true,
+    skipAuth: false,
   })
   if (!envelope.data) throw new Error('Login cevabında token yok')
   useAuthStore.getState().setTokens(envelope.data.access_token, envelope.data.refresh_token)
