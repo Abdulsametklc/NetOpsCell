@@ -60,6 +60,8 @@ class PersonnelCreateRequest(BaseModel):
     role: PersonnelRole
     specializations: list[str] = []
     regions: list[str] = []
+    base_lat: float | None = None
+    base_lon: float | None = None
 
 
 class LoginRequest(BaseModel):

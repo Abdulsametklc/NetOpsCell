@@ -142,10 +142,13 @@ services:
     build: ./services/identity-service
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@identity-db:5432/identity_db
+      REDIS_URL: redis://redis:6379/0
     ports:
       - "8001:8001"
     depends_on:
       identity-db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]

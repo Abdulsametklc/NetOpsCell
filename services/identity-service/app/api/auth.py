@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.event_publisher import publish_event
 from app.core.security import (
     FIXED_OTP_CODE,
     LOCKOUT_MINUTES,
@@ -21,6 +22,7 @@ from app.core.security import (
 from app.models.otp_code import OtpCode
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
+from app.schemas.events import IdentityPersonnelUpserted
 from app.schemas.auth import (
     LoginRequest,
     LogoutRequest,
@@ -131,6 +133,12 @@ async def create_personnel(payload: PersonnelCreateRequest, db: AsyncSession = D
             detail={"code": "WEAK_PASSWORD", "message": "Şifre politikaya uymuyor", "violations": violations},
         )
 
+    if payload.role == "SAHA_TEKNISYENI" and (payload.base_lat is None or payload.base_lon is None):
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "VALIDATION_ERROR", "message": "Saha teknisyeni için base_lat/base_lon zorunlu (AI Service atama skorlaması için)"},
+        )
+
     user = User(
         role=payload.role,
         first_name=payload.first_name,
@@ -139,11 +147,28 @@ async def create_personnel(payload: PersonnelCreateRequest, db: AsyncSession = D
         password_hash=hash_password(payload.password),
         specializations=payload.specializations,
         regions=payload.regions,
+        base_lat=payload.base_lat,
+        base_lon=payload.base_lon,
         is_active=True,
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    if user.role == "SAHA_TEKNISYENI":
+        # AI Service'in team_profile cache'ini besler (bkz. ARCHITECTURE.md §7, §6.2).
+        await publish_event(
+            "identity.personnel.upserted",
+            IdentityPersonnelUpserted(
+                user_id=str(user.id),
+                name=f"{user.first_name} {user.last_name}",
+                specializations=user.specializations or [],
+                regions=user.regions or [],
+                base_lat=user.base_lat,
+                base_lon=user.base_lon,
+                is_active=user.is_active,
+            ),
+        )
 
     return ResponseEnvelope(success=True, data=UserPublic(**user.__dict__))
 

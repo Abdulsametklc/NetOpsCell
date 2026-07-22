@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://postgres:postgres@identity-db:5432/identity_db"
     service_port: int = 8001
+    redis_url: str = "redis://redis:6379/0"
 
     jwt_secret: str = "dev-only-secret-change-me"
     access_token_expire_minutes: int = 15
