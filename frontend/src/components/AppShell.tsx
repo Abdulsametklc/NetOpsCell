@@ -23,16 +23,18 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
   const showTech = role === Role.SAHA_TEKNISYENI || role === Role.SUPERVIZOR || role === Role.ADMIN
   const showNoc =
     role === Role.NOC_OPERATORU || role === Role.SUPERVIZOR || role === Role.ADMIN
+  const showDash = role === Role.SUPERVIZOR || role === Role.ADMIN
+  const showAdmin = role === Role.ADMIN
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 px-6 py-4">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+      <header className="border-b border-slate-800 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-lg font-semibold tracking-tight">{title}</p>
             {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
           </div>
-          <nav className="flex flex-wrap items-center gap-2 text-sm">
+          <nav className="flex flex-wrap items-center gap-1 text-sm sm:gap-2">
             {showTech && (
               <Link className="rounded px-2 py-1 text-slate-300 hover:bg-slate-900" to="/teknisyen">
                 Teknisyen
@@ -43,13 +45,23 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
                 NOC
               </Link>
             )}
+            {showDash && (
+              <Link className="rounded px-2 py-1 text-slate-300 hover:bg-slate-900" to="/dashboard">
+                Dashboard
+              </Link>
+            )}
+            {showAdmin && (
+              <Link className="rounded px-2 py-1 text-slate-300 hover:bg-slate-900" to="/admin">
+                Admin
+              </Link>
+            )}
             <Link className="rounded px-2 py-1 text-slate-300 hover:bg-slate-900" to="/liderlik">
               Liderlik
             </Link>
             <Link className="rounded px-2 py-1 text-slate-300 hover:bg-slate-900" to="/profil">
               Profil
             </Link>
-            <span className="hidden text-slate-500 sm:inline">
+            <span className="hidden text-slate-500 md:inline">
               {user?.first_name ?? 'Kullanıcı'} · {role}
             </span>
             <button
@@ -62,7 +74,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
           </nav>
         </div>
       </header>
-      <div className="mx-auto max-w-5xl px-6 py-6">{children}</div>
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">{children}</div>
     </main>
   )
 }

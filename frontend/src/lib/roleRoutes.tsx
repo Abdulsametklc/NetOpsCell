@@ -10,8 +10,9 @@ export function homePathForRole(role: string | null | undefined): string {
     case Role.NOC_OPERATORU:
       return '/noc'
     case Role.SUPERVIZOR:
+      return '/dashboard'
     case Role.ADMIN:
-      return '/noc'
+      return '/admin'
     case Role.MUSTERI:
       return '/musteri'
     default:
