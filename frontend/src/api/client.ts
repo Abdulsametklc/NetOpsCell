@@ -2,13 +2,22 @@ import type { ResponseEnvelope, TokenPair } from './types'
 import { mockTokenPair } from './mocks/auth'
 import { useAuthStore } from '../store/authStore'
 
+/** Boş = Vite dev proxy (aynı origin). Gateway gelince http://localhost:8000 */
 function resolveBaseUrl(): string {
   const raw = import.meta.env.VITE_API_BASE_URL as string | undefined
-  return (raw ?? 'http://localhost:8000').replace(/\/$/, '')
+  if (raw === undefined || raw === '') return ''
+  return raw.replace(/\/$/, '')
 }
 
 function useAuthMock(): boolean {
   return import.meta.env.VITE_USE_AUTH_MOCK === 'true'
+}
+
+/** Gateway yokken Incident status için X-User-* (auth mock iken). Gateway gelince o enjekte eder. */
+function shouldInjectUserHeaders(): boolean {
+  return (
+    useAuthMock() || import.meta.env.VITE_INJECT_USER_HEADERS === 'true'
+  )
 }
 
 export class ApiError extends Error {
@@ -87,11 +96,15 @@ export async function apiFetch<T>(
     headers.set('Content-Type', 'application/json')
   }
 
-  if (!skipAuth) {
-    const token = useAuthStore.getState().accessToken
-    if (token && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${token}`)
-    }
+  const { accessToken, user } = useAuthStore.getState()
+
+  if (!skipAuth && accessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
+
+  if (shouldInjectUserHeaders() && user?.id && user?.role) {
+    if (!headers.has('X-User-Id')) headers.set('X-User-Id', user.id)
+    if (!headers.has('X-User-Role')) headers.set('X-User-Role', String(user.role))
   }
 
   const url = `${resolveBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`
@@ -101,7 +114,7 @@ export async function apiFetch<T>(
   try {
     envelope = (await res.json()) as ResponseEnvelope<T>
   } catch {
-    throw new ApiError(`Invalid JSON from ${url}`, res.status)
+    throw new ApiError(`Invalid JSON from ${url || path}`, res.status)
   }
 
   const expired =
@@ -128,5 +141,6 @@ export async function apiFetch<T>(
 }
 
 export function getApiBaseUrl(): string {
-  return resolveBaseUrl()
+  const base = resolveBaseUrl()
+  return base || '(vite-proxy → services)'
 }

@@ -94,7 +94,7 @@ export function useNotifications() {
       const t2 = window.setTimeout(() => {
         handleEvent({
           event_type: 'badge.earned',
-          user_id: useAuthStore.getState().user?.id ?? 'mock-user-1',
+          user_id: useAuthStore.getState().user?.id ?? 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
           badge_code: 'ILK_MUDAHALE',
         })
       }, 12000)

@@ -3,12 +3,15 @@ import { apiFetch, getApiBaseUrl } from './client'
 import { mockListMessages, mockPostMessage } from './mocks/messages'
 import { useAuthStore } from '../store/authStore'
 
-function useIncidentMock(): boolean {
-  return import.meta.env.VITE_USE_INCIDENT_MOCK === 'true'
+function useMessageMock(): boolean {
+  // Endpoint CP5 Kişi 2'de; gelene kadar varsayılan mock
+  const explicit = import.meta.env.VITE_USE_MESSAGE_MOCK as string | undefined
+  if (explicit === 'false') return false
+  return true
 }
 
 export async function listMessages(incidentId: string): Promise<IncidentMessage[]> {
-  if (useIncidentMock()) return mockListMessages(incidentId)
+  if (useMessageMock()) return mockListMessages(incidentId)
 
   const envelope = await apiFetch<IncidentMessage[]>(
     `/api/v1/incidents/${incidentId}/messages`,
@@ -21,9 +24,9 @@ export async function postMessage(
   content: string,
 ): Promise<IncidentMessage> {
   const user = useAuthStore.getState().user
-  if (useIncidentMock()) {
+  if (useMessageMock()) {
     return mockPostMessage(incidentId, content, {
-      id: user?.id ?? 'mock-user-1',
+      id: user?.id ?? 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
       role: String(user?.role ?? 'SAHA_TEKNISYENI'),
       name: user?.first_name ?? 'Operatör',
     })
@@ -41,7 +44,7 @@ export async function postMessage(
 }
 
 export function messagesModeLabel(): string {
-  return useIncidentMock()
+  return useMessageMock()
     ? `mock messages (${getApiBaseUrl()})`
     : `live messages (${getApiBaseUrl()})`
 }

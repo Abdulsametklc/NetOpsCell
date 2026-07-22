@@ -1,5 +1,6 @@
 import type { GameProfile, LeaderboardEntry, LeaderboardPeriod } from './types'
 import { apiFetch, getApiBaseUrl } from './client'
+import { DEMO_USER_ID } from './mocks/auth'
 import { mockLeaderboard, mockProfile } from './mocks/game'
 import { useAuthStore } from '../store/authStore'
 
@@ -17,6 +18,7 @@ export async function fetchLeaderboard(
 
   const envelope = await apiFetch<LeaderboardEntry[]>(
     `/api/v1/game/leaderboard?period=${period}&limit=${limit}`,
+    { skipAuth: true },
   )
   const rows = envelope.data ?? []
   return rows.map((r, i) => ({ ...r, rank: r.rank ?? i + 1 }))
@@ -24,15 +26,14 @@ export async function fetchLeaderboard(
 
 export async function fetchGameProfile(userId?: string): Promise<GameProfile> {
   if (useGameMock()) {
-    return mockProfile(userId ?? useAuthStore.getState().user?.id ?? 'mock-user-1')
+    return mockProfile(userId ?? useAuthStore.getState().user?.id ?? DEMO_USER_ID)
   }
 
-  const id = userId ?? 'me'
-  const path =
-    id === 'me'
-      ? '/api/v1/game/profile/me'
-      : `/api/v1/game/profile/${id}`
-  const envelope = await apiFetch<GameProfile>(path)
+  // Backend iskelet: GET /profile/{user_id} ( /me henüz yok )
+  const id = userId ?? useAuthStore.getState().user?.id ?? DEMO_USER_ID
+  const envelope = await apiFetch<GameProfile>(`/api/v1/game/profile/${id}`, {
+    skipAuth: true,
+  })
   if (!envelope.data) throw new Error('Profil bulunamadı')
   return envelope.data
 }
@@ -40,5 +41,5 @@ export async function fetchGameProfile(userId?: string): Promise<GameProfile> {
 export function gameModeLabel(): string {
   return useGameMock()
     ? `mock game (${getApiBaseUrl()})`
-    : `live API (${getApiBaseUrl()})`
+    : `live game (${getApiBaseUrl()})`
 }
