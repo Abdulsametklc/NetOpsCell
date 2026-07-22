@@ -1,16 +1,12 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import type { PredictResponse, TelemetryInput } from '../api/types'
 import { PowerStatus, Suggestion } from '../api/types'
-import {
-  CRITICAL_TELEMETRY,
-  incidentModeLabel,
-  submitTelemetry,
-} from '../api/incidentApi'
-import { logout } from '../api/authApi'
+import { CRITICAL_TELEMETRY, incidentModeLabel, submitTelemetry } from '../api/incidentApi'
 import { ApiError } from '../api/client'
-import { useAuthStore } from '../store/authStore'
+import { AppShell } from '../components/AppShell'
+import { Button, Card, Field, Input, Select } from '../components/ui'
+import { EmptyState } from '../components/UiStates'
 
 interface PredictionRow {
   id: string
@@ -32,19 +28,18 @@ const emptyForm: TelemetryInput = {
   recent_fault_count: 0,
 }
 
+function suggestionClass(s: Suggestion): string {
+  if (s === Suggestion.ACIL) return 'text-rose-600 dark:text-rose-400'
+  if (s === Suggestion.VAKA_AC) return 'text-amber-600 dark:text-amber-400'
+  return 'text-slate-500 dark:text-slate-400'
+}
+
 export function NocDashboardPage() {
-  const user = useAuthStore((s) => s.user)
-  const navigate = useNavigate()
   const [form, setForm] = useState<TelemetryInput>(emptyForm)
   const [rows, setRows] = useState<PredictionRow[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
-
-  async function onLogout() {
-    await logout()
-    navigate('/login', { replace: true })
-  }
 
   function setField<K extends keyof TelemetryInput>(key: K, value: TelemetryInput[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -108,8 +103,7 @@ export function NocDashboardPage() {
           ? {
               ...r,
               caseStatus: 'opened',
-              incident_number:
-                r.incident_number ?? `INC-2026-${String(Date.now()).slice(-6)}`,
+              incident_number: r.incident_number ?? `INC-2026-${String(Date.now()).slice(-6)}`,
             }
           : r,
       ),
@@ -118,30 +112,11 @@ export function NocDashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-lg font-semibold tracking-tight">NetOpsCell — NOC</p>
-          <p className="text-xs text-slate-500">Telemetri simülatörü · {incidentModeLabel()}</p>
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-slate-400">
-            {user?.first_name ?? 'NOC'} · {user?.role}
-          </span>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="rounded border border-slate-700 px-3 py-1.5 hover:bg-slate-900"
-          >
-            Çıkış
-          </button>
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto px-6 py-6 grid gap-8 lg:grid-cols-2">
+    <AppShell title="NetOpsCell — NOC" subtitle={`Telemetri simülatörü · ${incidentModeLabel()}`}>
+      <div className="grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="text-lg font-medium mb-3">Telemetri gönder</h2>
-          <form onSubmit={onSubmit} className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/50 p-4">
+          <h2 className="mb-3 text-lg font-semibold">Telemetri gönder</h2>
+          <Card as="form" onSubmit={onSubmit} className="space-y-3 p-4">
             {(
               [
                 ['station_code', 'İstasyon', 'text'],
@@ -153,123 +128,97 @@ export function NocDashboardPage() {
                 ['recent_fault_count', 'Son 24s arıza', 'number'],
               ] as const
             ).map(([key, label, type]) => (
-              <label key={key} className="block text-sm">
-                <span className="text-slate-400">{label}</span>
-                <input
-                  className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
+              <Field key={key} label={label}>
+                <Input
                   type={type}
                   value={form[key] as string | number}
-                  onChange={(e) =>
-                    setField(
-                      key,
-                      type === 'number' ? Number(e.target.value) : e.target.value,
-                    )
-                  }
+                  onChange={(e) => setField(key, type === 'number' ? Number(e.target.value) : e.target.value)}
                   required
                 />
-              </label>
+              </Field>
             ))}
-            <label className="block text-sm">
-              <span className="text-slate-400">Güç durumu</span>
-              <select
-                className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-                value={form.power_status}
-                onChange={(e) => setField('power_status', e.target.value as PowerStatus)}
-              >
+            <Field label="Güç durumu">
+              <Select value={form.power_status} onChange={(e) => setField('power_status', e.target.value as PowerStatus)}>
                 <option value={PowerStatus.NORMAL}>NORMAL</option>
                 <option value={PowerStatus.KESINTIDE}>KESINTIDE</option>
-              </select>
-            </label>
+              </Select>
+            </Field>
 
             <div className="flex flex-wrap gap-2 pt-2">
-              <button
-                type="submit"
-                disabled={busy}
-                className="rounded bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-60"
-              >
+              <Button type="submit" variant="primary" disabled={busy}>
                 {busy ? 'Gönderiliyor…' : 'Telemetri gönder'}
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={onCritical}
-                className="rounded bg-rose-700 px-4 py-2 text-sm font-medium hover:bg-rose-600 disabled:opacity-60"
-              >
+              </Button>
+              <Button type="button" variant="danger" disabled={busy} onClick={onCritical}>
                 Kritik telemetri (demo)
-              </button>
+              </Button>
             </div>
-          </form>
+          </Card>
           {error && (
-            <p className="mt-3 text-sm text-rose-400" role="alert">
+            <p className="mt-3 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300" role="alert">
               {error}
             </p>
           )}
           {flash && (
-            <p className="mt-3 text-sm text-emerald-400" role="status">
+            <p className="mt-3 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300" role="status">
               {flash}
             </p>
           )}
         </section>
 
         <section>
-          <h2 className="text-lg font-medium mb-3">Tahmin listesi</h2>
+          <h2 className="mb-3 text-lg font-semibold">Tahmin listesi</h2>
           {rows.length === 0 ? (
-            <p className="text-sm text-slate-500">Henüz tahmin yok — telemetri gönderin.</p>
+            <EmptyState message="Henüz tahmin yok — telemetri gönderin." />
           ) : (
             <ul className="space-y-3">
               {rows.map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-sm"
-                >
-                  <div className="flex justify-between gap-2 mb-2">
-                    <span className="font-mono text-sky-300">{r.station_code}</span>
-                    <span className="text-xs text-slate-500">
+                <Card key={r.id} className="p-4 text-sm">
+                  <div className="mb-2 flex justify-between gap-2">
+                    <span className="font-mono text-tc-navy-700 dark:text-tc-yellow-400">{r.station_code}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
                       {new Date(r.at).toLocaleTimeString('tr-TR')}
                     </span>
                   </div>
                   <p>
-                    <span className="text-slate-400">Olasılık:</span>{' '}
+                    <span className="text-slate-500 dark:text-slate-400">Olasılık:</span>{' '}
                     {(r.prediction.probability * 100).toFixed(0)}% ·{' '}
-                    <span className="text-amber-300">{r.prediction.fault_type}</span> ·{' '}
-                    <span className="text-orange-300">{r.prediction.priority}</span> ·{' '}
-                    <span className="text-rose-300">{r.prediction.suggestion}</span>
+                    <span className="font-medium">{r.prediction.fault_type}</span> ·{' '}
+                    <span className="font-medium">{r.prediction.priority}</span> ·{' '}
+                    <span className={`font-medium ${suggestionClass(r.prediction.suggestion)}`}>
+                      {r.prediction.suggestion}
+                    </span>
                   </p>
-                  <p className="mt-1 text-slate-400 text-xs">{r.prediction.confidence_explanation}</p>
-                  <p className="mt-1 text-xs text-slate-500">method: {r.prediction.method}</p>
-                  <div className="mt-3 flex flex-wrap gap-2 items-center">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{r.prediction.confidence_explanation}</p>
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">method: {r.prediction.method}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     {r.caseStatus === 'pending_approval' && (
                       <>
-                        <button
-                          type="button"
-                          className="rounded bg-emerald-700 px-3 py-1.5 text-xs hover:bg-emerald-600"
-                          onClick={() => approveCase(r.id)}
-                        >
+                        <Button variant="success" size="sm" onClick={() => approveCase(r.id)}>
                           Vaka aç / onayla
-                        </button>
-                        <span className="text-xs text-amber-400">Onay bekliyor</span>
+                        </Button>
+                        <span className="text-xs text-amber-600 dark:text-amber-400">Onay bekliyor</span>
                       </>
                     )}
                     {r.caseStatus === 'auto_opened' && (
-                      <span className="text-xs text-rose-400">
+                      <span className="text-xs font-medium text-rose-600 dark:text-rose-400">
                         ACIL — otomatik vaka {r.incident_number ?? ''}
                       </span>
                     )}
                     {r.caseStatus === 'opened' && (
-                      <span className="text-xs text-emerald-400">
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                         Açıldı {r.incident_number ?? ''}
                       </span>
                     )}
                     {r.caseStatus === 'none' && (
-                      <span className="text-xs text-slate-500">IZLE — aksiyon yok</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">IZLE — aksiyon yok</span>
                     )}
                   </div>
-                </li>
+                </Card>
               ))}
             </ul>
           )}
         </section>
       </div>
-    </main>
+    </AppShell>
   )
 }

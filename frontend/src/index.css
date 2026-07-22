@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+/* Manuel (class tabanlı) dark mode - .dark sınıfı <html>'e eklenince devreye girer.
+   Tailwind v4 CSS-first yaklaşımı: bkz. .claude/skills/tailwind-patterns. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Turkcell kurumsal lacivert tonları */
+  --color-tc-navy-950: #040b1a;
+  --color-tc-navy-900: #081733;
+  --color-tc-navy-800: #0e2148;
+  --color-tc-navy-700: #152c5c;
+  --color-tc-navy-600: #1d3b78;
+  --color-tc-navy-500: #274d96;
+
+  /* Turkcell imza sarısı */
+  --color-tc-yellow-600: #d9a600;
+  --color-tc-yellow-500: #ffc800;
+  --color-tc-yellow-400: #ffd633;
+  --color-tc-yellow-300: #ffe27a;
+  --color-tc-yellow-100: #fff6d6;
+
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  transition: background-color 150ms ease;
+}
