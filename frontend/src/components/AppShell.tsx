@@ -4,6 +4,7 @@ import { logout } from '../api/authApi'
 import { Role } from '../api/types'
 import { homePathForRole } from '../lib/roleRoutes'
 import { useAuthStore } from '../store/authStore'
+import { LogoMark } from './LogoMark'
 import { ThemeToggle } from './ThemeToggle'
 
 interface AppShellProps {
@@ -68,9 +69,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
               </button>
             )}
             <Link to="/" className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-tc-yellow-500 text-sm font-black text-tc-navy-950">
-                N
-              </span>
+              <LogoMark className="h-8 w-8" />
               <span className="text-base font-bold tracking-tight">
                 NetOps<span className="text-tc-yellow-400">Cell</span>
               </span>

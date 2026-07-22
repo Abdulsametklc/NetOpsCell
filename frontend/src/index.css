@@ -32,3 +32,23 @@ html {
 body {
   transition: background-color 150ms ease;
 }
+
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes mascot-wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-18deg); }
+  75% { transform: rotate(4deg); }
+}
+
+.animate-mascot-float {
+  animation: mascot-float 3.2s ease-in-out infinite;
+}
+
+.animate-mascot-wave {
+  transform-origin: 82% 32%;
+  animation: mascot-wave 1.8s ease-in-out infinite;
+}

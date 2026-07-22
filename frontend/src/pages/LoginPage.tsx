@@ -6,6 +6,8 @@ import { fetchMe, login } from '../api/authApi'
 import { useAuthStore } from '../store/authStore'
 import { homePathForRole } from '../lib/roleRoutes'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { LogoMark } from '../components/LogoMark'
+import { Teknocan } from '../components/Teknocan'
 import { Button, Field, Input, Pill } from '../components/ui'
 
 type Tab = 'personnel' | 'customer'
@@ -74,9 +76,7 @@ export function LoginPage() {
 
       <div className="relative flex items-center justify-between px-6 py-5">
         <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-tc-yellow-500 text-base font-black text-tc-navy-950">
-            N
-          </span>
+          <LogoMark />
           <span className="text-lg font-bold tracking-tight">
             NetOps<span className="text-tc-yellow-400">Cell</span>
           </span>
@@ -166,6 +166,8 @@ export function LoginPage() {
           </form>
         </div>
       </div>
+
+      <Teknocan />
     </main>
   )
 }
