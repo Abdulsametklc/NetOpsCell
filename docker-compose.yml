@@ -25,7 +25,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
+      start_period: 45s
 
   incident-service:
     build: ./services/incident-service
@@ -62,7 +63,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
+      start_period: 45s
 
   ai-service:
     build: ./services/ai-service
@@ -100,7 +102,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
+      start_period: 45s
 
   gamification-service:
     build: ./services/gamification-service
@@ -136,7 +139,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
+      start_period: 45s
 
   identity-service:
     build: ./services/identity-service
