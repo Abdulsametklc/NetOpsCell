@@ -50,14 +50,14 @@ body {
     letter-spacing: -0.035rem;
   }
   h2 {
-    font-size: 1.3125rem;
-    font-weight: 500;
-    line-height: 1.33;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.25;
   }
   h3 {
-    font-size: 1.125rem;
-    font-weight: 500;
-    line-height: 1.33;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.3;
   }
 
   @media (min-width: 768px) {
@@ -66,7 +66,7 @@ body {
       letter-spacing: -0.04875rem;
     }
     h2 {
-      font-size: 1.75rem;
+      font-size: 1.875rem;
     }
   }
 }

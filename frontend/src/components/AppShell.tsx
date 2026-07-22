@@ -70,18 +70,18 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
             )}
             <Link to="/" className="flex items-center gap-2">
               <LogoMark className="h-8 w-8" />
-              <span className="text-base font-bold tracking-tight">
+              <span className="text-lg font-bold tracking-tight">
                 NetOps<span className="text-tc-yellow-400">Cell</span>
               </span>
             </Link>
             <span className="hidden h-5 w-px bg-white/15 sm:block" />
             <div className="hidden sm:block">
-              <p className="text-sm font-medium text-white/90">{title}</p>
-              {subtitle && <p className="text-[11px] text-white/50">{subtitle}</p>}
+              <p className="text-base font-bold text-white">{title}</p>
+              {subtitle && <p className="text-xs font-medium text-white/60">{subtitle}</p>}
             </div>
           </div>
 
-          <nav className="flex flex-wrap items-center gap-1 text-sm">
+          <nav className="flex flex-wrap items-center gap-1 text-sm font-semibold">
             {items.map((item) => {
               const active = location.pathname === item.to
               return (
@@ -114,8 +114,8 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
       </header>
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <div className="mb-4 sm:hidden">
-          <p className="text-lg font-semibold">{title}</p>
-          {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
+          <p className="text-xl font-bold">{title}</p>
+          {subtitle && <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{subtitle}</p>}
         </div>
         {children}
       </div>

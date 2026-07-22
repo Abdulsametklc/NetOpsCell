@@ -99,7 +99,7 @@ export function TechnicianDashboardPage() {
   return (
     <AppShell title="NetOpsCell — Teknisyen">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Atanan arızalar</h2>
+        <h2 className="text-2xl font-bold">Atanan arızalar</h2>
         <Button variant="secondary" size="sm" onClick={() => void load()}>
           Yenile
         </Button>

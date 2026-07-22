@@ -105,7 +105,7 @@ export function SupervisorDashboardPage() {
   return (
     <AppShell title="NetOpsCell — Süpervizör">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Operasyon özeti</h2>
+        <h2 className="text-2xl font-bold">Operasyon özeti</h2>
         <Button variant="secondary" size="sm" onClick={() => void load()}>
           Yenile
         </Button>

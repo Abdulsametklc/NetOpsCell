@@ -87,8 +87,8 @@ export function LoginPage() {
       <div className="relative flex min-h-[calc(100vh-88px)] items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold tracking-tight">Şebeke Operasyon Platformu</h1>
-            <p className="mt-1 text-sm text-white/60">Devam etmek için giriş yapın</p>
+            <h1 className="text-3xl font-extrabold tracking-tight">Şebeke Operasyon Platformu</h1>
+            <p className="mt-2 text-sm font-medium text-white/60">Devam etmek için giriş yapın</p>
           </div>
 
           <div className="mb-4 flex gap-2 rounded-full bg-white/5 p-1">

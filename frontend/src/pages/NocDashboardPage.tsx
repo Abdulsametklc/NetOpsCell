@@ -157,7 +157,7 @@ export function NocDashboardPage() {
     <AppShell title="NetOpsCell — NOC" subtitle="Telemetri simülatörü">
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Telemetri gönder</h2>
+          <h2 className="mb-3 text-xl font-bold">Telemetri gönder</h2>
           <Card as="form" onSubmit={onSubmit} className="space-y-3 p-4">
             {(
               [
@@ -208,7 +208,7 @@ export function NocDashboardPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Tahmin listesi</h2>
+          <h2 className="mb-3 text-xl font-bold">Tahmin listesi</h2>
           {rows.length === 0 ? (
             <EmptyState message="Henüz tahmin yok — telemetri gönderin." />
           ) : (
