@@ -27,9 +27,10 @@ export interface TelemetrySubmitResult {
   telemetry_id: string
   prediction?: PredictResponse | null
   incident?: IncidentListItem | null
+  ai_available?: boolean
 }
 
-/** Deterministik istemci fallback — backend AI yokken demo için (girdiye göre değişir) */
+/** Deterministik istemci fallback — yalnızca mock veya prediction eksikse */
 export function localPredict(input: TelemetryInput): PredictResponse {
   let score = 0
   if (input.temperature >= 75) score += 0.45
@@ -68,6 +69,24 @@ export function localPredict(input: TelemetryInput): PredictResponse {
   }
 }
 
+function predictionFromIncident(
+  incident: IncidentListItem,
+  input: TelemetryInput,
+): PredictResponse {
+  const suggestion = (incident.ai_suggestion as Suggestion | null) ?? S.VAKA_AC
+  return {
+    probability: incident.probability ?? 0,
+    fault_type: (incident.fault_type as FaultType) ?? FT.BELIRSIZ,
+    priority: (incident.priority as Priority) ?? P.ORTA,
+    suggestion,
+    method: PredictionMethod.RULE_FALLBACK,
+    confidence_explanation:
+      suggestion === S.IZLE
+        ? 'İzleme — vaka açılmadı.'
+        : `Incident Service / AI: ${incident.fault_type ?? 'BELIRSIZ'} · ${incident.priority ?? 'ORTA'} (istasyon ${input.station_code}).`,
+  }
+}
+
 export const CRITICAL_TELEMETRY: TelemetryInput = {
   station_code: 'IST-AVR-099',
   lat: 41.015,
@@ -77,6 +96,13 @@ export const CRITICAL_TELEMETRY: TelemetryInput = {
   temperature: 88,
   power_status: 'KESINTIDE' as PowerStatus,
   recent_fault_count: 3,
+}
+
+type TelemetryApiData = {
+  telemetry_id: string
+  ai_available?: boolean
+  prediction?: PredictResponse
+  incident?: IncidentListItem | null
 }
 
 export async function submitTelemetry(
@@ -91,33 +117,49 @@ export async function submitTelemetry(
         id: `mock-inc-${Date.now()}`,
         incident_number: `INC-2026-${String(Date.now()).slice(-6)}`,
         station_code: input.station_code,
-        current_status: prediction.suggestion === 'ACIL' ? 'ATANDI' : 'YENI',
+        current_status: 'YENI',
         fault_type: prediction.fault_type,
         priority: prediction.priority,
-        assigned_team_name: prediction.suggestion === 'ACIL' ? 'IST-AVRUPA-A' : null,
+        probability: prediction.probability,
+        ai_suggestion: prediction.suggestion,
+        assigned_team_name: null,
       }
     }
-    return { telemetry_id, prediction, incident }
+    return { telemetry_id, prediction, incident, ai_available: true }
   }
 
-  const envelope = await apiFetch<{
-    telemetry_id: string
-    prediction?: PredictResponse
-    incident?: IncidentListItem
-  }>('/api/v1/telemetry', {
+  const envelope = await apiFetch<TelemetryApiData>('/api/v1/telemetry', {
     method: 'POST',
     body: JSON.stringify(input),
+    skipAuth: true,
   })
 
   const data = envelope.data
   if (!data) throw new Error('Telemetri cevabı boş')
 
-  // Backend henüz prediction dönmüyorsa istemci kuralı ile zenginleştir (demo)
-  const prediction = data.prediction ?? localPredict(input)
+  let prediction = data.prediction ?? null
+  if (!prediction && data.incident) {
+    prediction = predictionFromIncident(data.incident, input)
+  }
+  if (!prediction && data.ai_available === false) {
+    prediction = {
+      probability: 0,
+      fault_type: FT.BELIRSIZ,
+      priority: P.ORTA,
+      suggestion: S.VAKA_AC,
+      method: PredictionMethod.RULE_FALLBACK,
+      confidence_explanation: 'AI Service ulaşılamadı — BELIRSIZ/ORTA ile vaka açıldı.',
+    }
+  }
+  if (!prediction) {
+    prediction = localPredict(input)
+  }
+
   return {
     telemetry_id: data.telemetry_id,
     prediction,
     incident: data.incident ?? null,
+    ai_available: data.ai_available,
   }
 }
 
@@ -131,7 +173,7 @@ export async function listIncidents(params?: {
   const q = new URLSearchParams()
   if (params?.assigned_to_me) q.set('assigned_to_me', 'true')
   const path = `/api/v1/incidents${q.toString() ? `?${q}` : ''}`
-  const envelope = await apiFetch<IncidentListItem[]>(path)
+  const envelope = await apiFetch<IncidentListItem[]>(path, { skipAuth: true })
   return envelope.data ?? []
 }
 
@@ -150,6 +192,7 @@ export async function patchIncidentStatus(
   const body: Record<string, string> = { to_status: String(to_status) }
   if (resolution_note) body.note = resolution_note
 
+  // X-User-* apiFetch tarafından auth mock iken enjekte edilir
   const envelope = await apiFetch<IncidentListItem>(`/api/v1/incidents/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify(body),
@@ -161,7 +204,7 @@ export async function patchIncidentStatus(
 export function incidentModeLabel(): string {
   return useIncidentMock()
     ? `mock incident (${getApiBaseUrl()})`
-    : `live API (${getApiBaseUrl()})`
+    : `live incident (${getApiBaseUrl()})`
 }
 
 export type { ResponseEnvelope }

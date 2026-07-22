@@ -12,6 +12,7 @@ export const mockAssignedIncidents: IncidentListItem[] = [
     priority: Priority.KRITIK,
     assigned_team_name: 'IST-AVRUPA-A',
     sla_due_at: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
+    sla_status: 'ACTIVE',
   },
   {
     id: '22222222-2222-2222-2222-222222222222',
@@ -22,6 +23,7 @@ export const mockAssignedIncidents: IncidentListItem[] = [
     priority: Priority.YUKSEK,
     assigned_team_name: 'IST-AVRUPA-A',
     sla_due_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+    sla_status: 'ACTIVE',
   },
   {
     id: '33333333-3333-3333-3333-333333333333',
@@ -32,5 +34,6 @@ export const mockAssignedIncidents: IncidentListItem[] = [
     priority: Priority.ORTA,
     assigned_team_name: 'IST-AVRUPA-A',
     sla_due_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+    sla_status: 'BREACHED',
   },
 ]

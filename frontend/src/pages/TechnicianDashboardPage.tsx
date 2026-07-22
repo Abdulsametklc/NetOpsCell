@@ -7,6 +7,8 @@ import { useAuthStore } from '../store/authStore'
 import { useToastStore } from '../store/toastStore'
 import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/UiStates'
+import { MessageThread } from '../components/MessageThread'
+import { SlaBadge } from '../components/SlaBadge'
 import {
   allowedNextStatuses,
   requiresResolutionNote,
@@ -26,15 +28,6 @@ function priorityClass(priority: string | null | undefined): string {
   }
 }
 
-function slaLabel(iso: string | null | undefined): { text: string; className: string } {
-  if (!iso) return { text: '—', className: 'text-slate-500' }
-  const ms = new Date(iso).getTime() - Date.now()
-  if (ms < 0) return { text: 'SLA aşıldı', className: 'text-rose-400' }
-  const min = Math.round(ms / 60000)
-  if (min < 60) return { text: `${min} dk`, className: 'text-amber-300' }
-  return { text: `${Math.round(min / 60)} sa`, className: 'text-emerald-400' }
-}
-
 export function TechnicianDashboardPage() {
   const user = useAuthStore((s) => s.user)
   const role = user?.role
@@ -46,6 +39,7 @@ export function TechnicianDashboardPage() {
   const [note, setNote] = useState('')
   const [pendingTo, setPendingTo] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [threadOpen, setThreadOpen] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -79,17 +73,23 @@ export function TechnicianDashboardPage() {
     setError(null)
     try {
       const updated = await patchIncidentStatus(id, to, resolution_note)
-      setIncidents((prev) => prev.map((i) => (i.id === id ? { ...i, ...updated } : i)))
+      setIncidents((prev) =>
+        prev.map((i) =>
+          i.id === id
+            ? {
+                ...i,
+                ...updated,
+                sla_status:
+                  to === IncidentStatus.COZULDU ? 'MET' : (updated.sla_status ?? i.sla_status),
+              }
+            : i,
+        ),
+      )
       setNoteFor(null)
       setPendingTo(null)
       setNote('')
       if (to === IncidentStatus.COZULDU) {
-        pushToast(
-          'success',
-          'Vaka çözüldü',
-          'Puan gamification ile işlenecek; liderlik tablosunu kontrol edin.',
-        )
-        pushToast('badge', 'Rozet kontrolü', 'Uygunsa rozet toast’ı CP5 WS ile gelecek (şimdilik yerel).')
+        pushToast('success', 'Vaka çözüldü', 'Çözüm notu kaydedildi.')
       } else {
         pushToast('info', 'Durum güncellendi', statusActionLabel(to))
       }
@@ -125,24 +125,25 @@ export function TechnicianDashboardPage() {
       {!loading && incidents.length > 0 && (
         <div className="space-y-4">
           {incidents.map((item) => {
-            const sla = slaLabel(item.sla_due_at)
             const next = allowedNextStatuses(String(item.current_status), role)
+            const open = threadOpen === item.id
             return (
               <article
                 key={item.id}
                 className="rounded-lg border border-slate-800 bg-slate-900/40 p-4"
               >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="font-mono text-sky-300">{item.incident_number}</h3>
-                  <span className={`text-sm font-medium ${priorityClass(item.priority)}`}>
-                    {item.priority ?? '—'}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SlaBadge slaDueAt={item.sla_due_at} slaStatus={item.sla_status} />
+                    <span className={`text-sm font-medium ${priorityClass(item.priority)}`}>
+                      {item.priority ?? '—'}
+                    </span>
+                  </div>
                 </div>
                 <p className="mt-1 text-sm text-slate-300">
                   {item.station_code} · {item.fault_type ?? '—'} ·{' '}
                   <span className="text-slate-400">{item.current_status}</span>
-                  {' · SLA '}
-                  <span className={sla.className}>{sla.text}</span>
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {next.length === 0 && (
@@ -164,6 +165,13 @@ export function TechnicianDashboardPage() {
                       {statusActionLabel(to)}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    className="rounded border border-slate-700 px-3 py-1.5 text-xs hover:bg-slate-900"
+                    onClick={() => setThreadOpen(open ? null : item.id)}
+                  >
+                    {open ? 'Mesajları gizle' : 'Mesajlaşma'}
+                  </button>
                 </div>
                 {noteFor === item.id && (
                   <div className="mt-3 space-y-2 border-t border-slate-800 pt-3">
@@ -200,6 +208,12 @@ export function TechnicianDashboardPage() {
                       </button>
                     </div>
                   </div>
+                )}
+                {open && (
+                  <MessageThread
+                    incidentId={item.id}
+                    incidentNumber={item.incident_number}
+                  />
                 )}
               </article>
             )

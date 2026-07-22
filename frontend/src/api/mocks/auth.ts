@@ -1,5 +1,8 @@
 import type { Role, TokenPair, UserProfile } from '../types'
 
+/** Incident status + game profile UUID ister; sabit demo id */
+export const DEMO_USER_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+
 function b64url(obj: unknown): string {
   const json = JSON.stringify(obj)
   const b64 = btoa(json)
@@ -7,7 +10,7 @@ function b64url(obj: unknown): string {
 }
 
 /** Dev-only mock access JWT (unsigned) so role routing works offline. */
-export function mockAccessToken(role: Role | string, sub = 'mock-user-1'): string {
+export function mockAccessToken(role: Role | string, sub = DEMO_USER_ID): string {
   const header = b64url({ alg: 'RS256', typ: 'JWT' })
   const now = Math.floor(Date.now() / 1000)
   const payload = b64url({
@@ -31,7 +34,7 @@ export function mockTokenPair(role: Role | string): TokenPair {
 
 export function mockProfile(role: Role | string): UserProfile {
   return {
-    id: 'mock-user-1',
+    id: DEMO_USER_ID,
     role,
     first_name: 'Demo',
     last_name: 'Teknisyen',

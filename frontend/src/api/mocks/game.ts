@@ -30,7 +30,7 @@ export function mockLeaderboard(period: LeaderboardPeriod): LeaderboardEntry[] {
     .map((e, i) => ({ ...e, rank: i + 1 }))
 }
 
-export function mockProfile(userId = 'mock-user-1'): GameProfile {
+export function mockProfile(userId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'): GameProfile {
   return {
     user_id: userId,
     display_name: 'Demo Teknisyen',
