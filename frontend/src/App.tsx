@@ -1,15 +1,19 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { ToastHost } from './components/ToastHost'
 import { Role } from './api/types'
 import { RoleHomeRedirect } from './lib/roleRoutes'
 import { CustomerHomePage } from './pages/CustomerHomePage'
+import { LeaderboardPage } from './pages/LeaderboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { NocDashboardPage } from './pages/NocDashboardPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { TechnicianDashboardPage } from './pages/TechnicianDashboardPage'
 
 export default function App() {
   return (
     <BrowserRouter>
+      <ToastHost />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<RoleHomeRedirect />} />
@@ -36,6 +40,22 @@ export default function App() {
               roles={[Role.NOC_OPERATORU, Role.SUPERVIZOR, Role.ADMIN]}
             >
               <NocDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/liderlik"
+          element={
+            <ProtectedRoute>
+              <LeaderboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profil"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

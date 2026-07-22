@@ -147,8 +147,8 @@ export async function patchIncidentStatus(
     return { ...item }
   }
 
-  const body: Record<string, string> = { status: to_status }
-  if (resolution_note) body.resolution_note = resolution_note
+  const body: Record<string, string> = { to_status: String(to_status) }
+  if (resolution_note) body.note = resolution_note
 
   const envelope = await apiFetch<IncidentListItem>(`/api/v1/incidents/${id}/status`, {
     method: 'PATCH',
