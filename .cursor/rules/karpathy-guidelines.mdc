@@ -1,0 +1,15 @@
+---
+description: Karpathy-inspired coding guidelines for this repository
+alwaysApply: true
+---
+
+# Karpathy-guidelines
+
+Use these principles when writing, reviewing, or refactoring code in this workspace:
+
+- Think before coding: state assumptions and surface ambiguity.
+- Prefer simplicity over over-engineering.
+- Make surgical changes and avoid unrelated refactors.
+- Define success criteria and verify the result before claiming completion.
+
+For this repository, keep changes scoped to the current service or feature and prefer small, testable increments.
