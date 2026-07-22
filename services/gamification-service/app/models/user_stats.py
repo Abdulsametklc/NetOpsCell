@@ -18,6 +18,12 @@ class UserStats(Base):
     level: Mapped[Level] = mapped_column(sa.Enum(Level, name="user_level"), nullable=False, default=Level.BRONZ)
     resolved_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     avg_points: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    # CP5 rozet sayaclari (bkz. consumers/handlers.py - Hiz Ustasi, Kriz Yoneticisi, Kalici Cozum)
+    fast_resolution_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    critical_within_sla_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    clean_resolution_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
