@@ -2,43 +2,31 @@ import asyncio
 import json
 import logging
 
-from app.consumers.handlers import handle_incident_resolved
 from app.core.database import async_session
 from app.core.redis_client import redis_client
+from app.consumers.handlers import handle_incident_assigned, handle_incident_resolved, handle_personnel_upserted
 
 logger = logging.getLogger(__name__)
 
-CONSUMER_GROUP = "gamification-service"
-
-# incident.resolved: CP4'te gercek puan/rozet mantigi baglandi (handlers.py).
-# Digerleri (incident.created, incident.evaluated, incident.sla_breached) hala CP5 isi -
-# simdilik sadece ack'lenip loglaniyor (bkz. TASK_SPLIT.md Kisi 2 gorev listesi).
-STREAMS = [
-    "incident.created",
-    "incident.resolved",
-    "incident.evaluated",
-    "incident.sla_breached",
-]
+CONSUMER_GROUP = "ai-service"
 
 HANDLERS = {
+    "identity.personnel.upserted": handle_personnel_upserted,
+    "incident.assigned": handle_incident_assigned,
     "incident.resolved": handle_incident_resolved,
 }
-
-
-async def _default_handler(_db, event: dict) -> None:
-    logger.info("Event alindi (henuz islenmiyor - CP5 kapsaminda): %s", event)
 
 
 async def _ensure_group(stream: str) -> None:
     try:
         await redis_client.xgroup_create(name=stream, groupname=CONSUMER_GROUP, id="0", mkstream=True)
-    except Exception as exc:  # Redis stream zaten grubuyla varsa "BUSYGROUP" hatasi firlatir, yok sayilir.
+    except Exception as exc:  # Redis stream zaten grubuyla varsa "BUSYGROUP" hatasi firlatir.
         if "BUSYGROUP" not in str(exc):
             raise
 
 
 async def _consume_loop(stream: str) -> None:
-    handler = HANDLERS.get(stream, _default_handler)
+    handler = HANDLERS[stream]
     consumer_name = f"{CONSUMER_GROUP}-worker"
     while True:
         try:
@@ -72,7 +60,7 @@ async def _consume_loop(stream: str) -> None:
 
 async def start_consumers() -> list[asyncio.Task]:
     tasks: list[asyncio.Task] = []
-    for stream in STREAMS:
+    for stream in HANDLERS:
         await _ensure_group(stream)
         tasks.append(asyncio.create_task(_consume_loop(stream)))
     return tasks

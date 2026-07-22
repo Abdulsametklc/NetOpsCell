@@ -1,8 +1,6 @@
 """Kaynak: docs/CONTRACTS.md. Bu dosya elle senkronize edilir; CONTRACTS.md degisirse buraya da yansitilmali."""
 
-from datetime import datetime
 from enum import Enum
-from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -27,16 +25,6 @@ class Suggestion(str, Enum):
     IZLE = "IZLE"
     VAKA_AC = "VAKA_AC"
     ACIL = "ACIL"
-
-
-class IncidentStatus(str, Enum):
-    YENI = "YENI"
-    ATANDI = "ATANDI"
-    YOLDA = "YOLDA"
-    MUDAHALE_EDILIYOR = "MUDAHALE_EDILIYOR"
-    PARCA_BEKLENIYOR = "PARCA_BEKLENIYOR"
-    COZULDU = "COZULDU"
-    KAPANDI = "KAPANDI"
 
 
 class PowerStatus(str, Enum):
@@ -90,23 +78,3 @@ class AssignResponse(BaseModel):
     team_name: str | None = None
     score: float | None = None
     components: ScoreComponents | None = None
-
-
-class IncidentAssigned(BaseModel):
-    event_type: Literal["incident.assigned"] = "incident.assigned"
-    incident_id: str
-    team_id: str
-    team_name: str
-    score: float
-    assigned_by: str
-    assigned_at: datetime
-
-
-class IncidentResolved(BaseModel):
-    event_type: Literal["incident.resolved"] = "incident.resolved"
-    incident_id: str
-    team_id: str
-    fault_type: FaultType
-    priority: Priority
-    created_at: datetime
-    resolved_at: datetime

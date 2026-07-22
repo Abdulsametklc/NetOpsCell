@@ -1,9 +1,24 @@
-import type { ResponseEnvelope } from './types'
+import type { ResponseEnvelope, TokenPair } from './types'
+import { mockTokenPair } from './mocks/auth'
 import { useAuthStore } from '../store/authStore'
 
-const baseUrl = () =>
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ??
-  'http://localhost:8000'
+/** Boş = Vite dev proxy (aynı origin). Gateway gelince http://localhost:8000 */
+function resolveBaseUrl(): string {
+  const raw = import.meta.env.VITE_API_BASE_URL as string | undefined
+  if (raw === undefined || raw === '') return ''
+  return raw.replace(/\/$/, '')
+}
+
+function useAuthMock(): boolean {
+  return import.meta.env.VITE_USE_AUTH_MOCK === 'true'
+}
+
+/** Gateway yokken Incident status için X-User-* (auth mock iken). Gateway gelince o enjekte eder. */
+function shouldInjectUserHeaders(): boolean {
+  return (
+    useAuthMock() || import.meta.env.VITE_INJECT_USER_HEADERS === 'true'
+  )
+}
 
 export class ApiError extends Error {
   status: number
@@ -21,28 +36,112 @@ export class ApiError extends Error {
   }
 }
 
+export type ApiFetchInit = RequestInit & {
+  skipAuth?: boolean
+  skipRefresh?: boolean
+}
+
+let refreshInFlight: Promise<boolean> | null = null
+
+async function performRefresh(refreshToken: string): Promise<TokenPair> {
+  if (useAuthMock()) {
+    const role = useAuthStore.getState().role() ?? 'SAHA_TEKNISYENI'
+    return mockTokenPair(role)
+  }
+
+  const url = `${resolveBaseUrl()}/api/v1/auth/refresh`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  })
+  const envelope = (await res.json()) as ResponseEnvelope<TokenPair>
+  if (!res.ok || !envelope.success || !envelope.data) {
+    throw new ApiError(
+      envelope.error?.message ?? 'Refresh failed',
+      res.status,
+      envelope,
+    )
+  }
+  return envelope.data
+}
+
+async function tryRefresh(): Promise<boolean> {
+  const refreshToken = useAuthStore.getState().refreshToken
+  if (!refreshToken) return false
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const pair = await performRefresh(refreshToken)
+        useAuthStore.getState().setTokens(pair.access_token, pair.refresh_token)
+        return true
+      } catch {
+        useAuthStore.getState().clear()
+        return false
+      } finally {
+        refreshInFlight = null
+      }
+    })()
+  }
+  return refreshInFlight
+}
+
 export async function apiFetch<T>(
   path: string,
-  init: RequestInit = {},
+  init: ApiFetchInit = {},
 ): Promise<ResponseEnvelope<T>> {
-  const headers = new Headers(init.headers)
-  if (!headers.has('Content-Type') && init.body) {
+  const { skipAuth, skipRefresh, ...rest } = init
+  const headers = new Headers(rest.headers)
+  if (!headers.has('Content-Type') && rest.body) {
     headers.set('Content-Type', 'application/json')
   }
 
-  const token = useAuthStore.getState().accessToken
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`)
+  const { accessToken, user } = useAuthStore.getState()
+
+  if (!skipAuth && accessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
   }
 
-  const url = `${baseUrl()}${path.startsWith('/') ? path : `/${path}`}`
-  const res = await fetch(url, { ...init, headers })
+  if (shouldInjectUserHeaders() && user?.id && user?.role) {
+    if (!headers.has('X-User-Id')) headers.set('X-User-Id', user.id)
+    if (!headers.has('X-User-Role')) headers.set('X-User-Role', String(user.role))
+  }
+
+  const url = `${resolveBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`
+  const res = await fetch(url, { ...rest, headers })
 
   let envelope: ResponseEnvelope<T>
   try {
-    envelope = (await res.json()) as ResponseEnvelope<T>
-  } catch {
-    throw new ApiError(`Invalid JSON from ${url}`, res.status)
+    const text = await res.text()
+    if (!text) {
+      throw new ApiError(
+        `Boş cevap (${res.status}). Servis kapalı olabilir — docker compose up veya mock aç.`,
+        res.status,
+      )
+    }
+    try {
+      envelope = JSON.parse(text) as ResponseEnvelope<T>
+    } catch {
+      throw new ApiError(
+        `JSON değil (HTTP ${res.status}). Proxy/servis hatası — incident:8002 / game:8004 ayakta mı?`,
+        res.status,
+      )
+    }
+  } catch (err) {
+    if (err instanceof ApiError) throw err
+    throw new ApiError(`İstek başarısız: ${url || path}`, res.status)
+  }
+
+  const expired =
+    res.status === 401 &&
+    (envelope.error?.code === 'TOKEN_EXPIRED' ||
+      envelope.error?.code === 'TOKEN_INVALID')
+
+  if (expired && !skipRefresh && !skipAuth) {
+    const ok = await tryRefresh()
+    if (ok) {
+      return apiFetch<T>(path, { ...init, skipRefresh: true })
+    }
   }
 
   if (!res.ok || envelope.success === false) {
@@ -57,5 +156,6 @@ export async function apiFetch<T>(
 }
 
 export function getApiBaseUrl(): string {
-  return baseUrl()
+  const base = resolveBaseUrl()
+  return base || '(vite-proxy → services)'
 }

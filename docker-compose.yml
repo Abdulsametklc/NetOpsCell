@@ -32,6 +32,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@incident-db:5432/incident_db
       REDIS_URL: redis://redis:6379/0
+      AI_SERVICE_URL: http://ai-service:8003
     ports:
       - "8002:8002"
     depends_on:
@@ -46,7 +47,7 @@ services:
       retries: 5
       start_period: 10s
 
-  # --- Kisi 2: AI Service (iskeleti CP3'te eklenecek) --------------------------------
+  # --- Kisi 2: AI Service --------------------------------------------------------------
   ai-db:
     image: postgres:16-alpine
     environment:
@@ -62,6 +63,27 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  ai-service:
+    build: ./services/ai-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@ai-db:5432/ai_db
+      REDIS_URL: redis://redis:6379/0
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: claude-sonnet-5
+    ports:
+      - "8003:8003"
+    depends_on:
+      ai-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # --- Kisi 2: Gamification Service ---------------------------------------------------
   game-db:
