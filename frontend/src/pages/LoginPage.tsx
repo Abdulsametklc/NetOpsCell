@@ -84,7 +84,7 @@ export function LoginPage() {
         <ThemeToggle />
       </div>
 
-      <div className="relative flex min-h-[calc(100vh-88px)] items-center justify-center p-6">
+      <div className="relative flex min-h-[calc(100vh-88px)] items-start justify-center p-6 pt-16 sm:pt-24">
         <div className="w-full max-w-md">
           <div className="mb-6 text-center">
             <h1 className="text-3xl font-extrabold tracking-tight">Şebeke Operasyon Platformu</h1>
