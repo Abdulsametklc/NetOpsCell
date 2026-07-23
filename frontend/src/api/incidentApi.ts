@@ -201,6 +201,19 @@ export async function patchIncidentStatus(
   return envelope.data
 }
 
+export async function submitEvaluation(
+  id: string,
+  stars: number,
+  is_permanent: boolean,
+): Promise<void> {
+  if (useIncidentMock()) return
+
+  await apiFetch(`/api/v1/incidents/${id}/evaluation`, {
+    method: 'POST',
+    body: JSON.stringify({ stars, is_permanent }),
+  })
+}
+
 const mockMyIncidents: IncidentListItem[] = []
 
 export async function reportIncident(description: string): Promise<IncidentListItem> {

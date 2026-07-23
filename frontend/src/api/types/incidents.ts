@@ -17,4 +17,5 @@ export interface IncidentListItem {
   sla_due_at?: string | null
   sla_status?: 'ACTIVE' | 'MET' | 'BREACHED' | string | null
   customer_description?: string | null
+  has_evaluation?: boolean | null
 }

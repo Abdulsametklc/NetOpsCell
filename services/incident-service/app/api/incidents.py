@@ -59,7 +59,7 @@ TERMINAL_STATUSES = (IncidentStatus.COZULDU, IncidentStatus.KAPANDI)
 TR_WEEKDAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
 
 
-def _incident_summary(incident: Incident) -> dict:
+def _incident_summary(incident: Incident, *, has_evaluation: bool | None = None) -> dict:
     return {
         "id": str(incident.id),
         "incident_number": incident.incident_number,
@@ -76,6 +76,7 @@ def _incident_summary(incident: Incident) -> dict:
         "resolved_at": incident.resolved_at.isoformat() if incident.resolved_at else None,
         "created_at": incident.created_at.isoformat() if incident.created_at else None,
         "customer_description": incident.customer_description,
+        "has_evaluation": has_evaluation,
     }
 
 
@@ -267,7 +268,19 @@ async def list_incidents(
         query = query.where(Incident.assigned_team_id == current_user.user_id)
     result = await db.execute(query.order_by(Incident.created_at.desc()))
     incidents = result.scalars().all()
-    return {"success": True, "data": [_incident_summary(i) for i in incidents], "error": None}
+
+    eval_rows = await db.execute(
+        select(IncidentEvaluation.incident_id).where(
+            IncidentEvaluation.incident_id.in_([i.id for i in incidents])
+        )
+    )
+    evaluated_ids = {row[0] for row in eval_rows.all()}
+
+    return {
+        "success": True,
+        "data": [_incident_summary(i, has_evaluation=i.id in evaluated_ids) for i in incidents],
+        "error": None,
+    }
 
 
 @router.post("/incidents/report", status_code=status.HTTP_201_CREATED)
