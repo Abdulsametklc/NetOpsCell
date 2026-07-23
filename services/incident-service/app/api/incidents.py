@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.ai_client import AIServiceUnavailable, assign, predict
-from app.core.auth import CurrentUser, get_current_user
+from app.core.auth import CurrentUser, get_current_user, require_roles
 from app.core.database import get_db
 from app.core.event_publisher import publish_event
 from app.core.sequence import generate_incident_number
@@ -52,6 +52,8 @@ router = APIRouter(prefix="/api/v1", tags=["incidents"])
 MESSAGING_ROLES = {"SAHA_TEKNISYENI", "NOC_OPERATORU"}
 MANUAL_ASSIGN_ROLES = {"SUPERVIZOR", "ADMIN"}
 FAULT_TYPE_OVERRIDE_ROLES = {"NOC_OPERATORU", "SUPERVIZOR"}
+DASHBOARD_ROLES = ["SUPERVIZOR", "ADMIN"]
+STAFF_ROLES = ["SAHA_TEKNISYENI", "NOC_OPERATORU", "SUPERVIZOR", "ADMIN"]
 TERMINAL_STATUSES = (IncidentStatus.COZULDU, IncidentStatus.KAPANDI)
 TR_WEEKDAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
 
@@ -252,11 +254,12 @@ async def submit_telemetry(payload: TelemetryInput, db: AsyncSession = Depends(g
 
 @router.get("/incidents")
 async def list_incidents(
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_roles(STAFF_ROLES)),
     db: AsyncSession = Depends(get_db),
 ):
     """CP6: rol bazli scope (case SS3.3 - Saha Teknisyeni sadece kendine atanan
-    vakalari gorur, NOC/Supervizor/Admin tumunu gorur)."""
+    vakalari gorur, NOC/Supervizor/Admin tumunu gorur). Musteri rolunun bu
+    endpoint'te hicbir yetkisi yok (yetki matrisinde sadece "arıza oluşturma" var)."""
     query = select(Incident)
     if current_user.role == "SAHA_TEKNISYENI":
         query = query.where(Incident.assigned_team_id == current_user.user_id)
@@ -266,9 +269,13 @@ async def list_incidents(
 
 
 @router.get("/incidents/queue/unassigned")
-async def unassigned_queue(db: AsyncSession = Depends(get_db)):
+async def unassigned_queue(
+    current_user: CurrentUser = Depends(require_roles(DASHBOARD_ROLES)),
+    db: AsyncSession = Depends(get_db),
+):
     """Case Bolum 5.3: kapasite/tur eslesmesi bulunamadigi ya da AI erisilemedigi icin
-    otomatik atanamamis vakalar - Supervizor burada manuel atama yapar."""
+    otomatik atanamamis vakalar - Supervizor burada manuel atama yapar. Dashboard
+    goruntuleme yetki matrisinde sadece Supervizor/Admin var (case SS3.3)."""
     result = await db.execute(
         select(Incident)
         .where(Incident.assigned_team_id.is_(None), Incident.current_status.notin_(TERMINAL_STATUSES))
@@ -279,8 +286,12 @@ async def unassigned_queue(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/incidents/stats/summary")
-async def stats_summary(db: AsyncSession = Depends(get_db)):
-    """Supervizor Dashboard icin agregasyonlar (bkz. ARCHITECTURE.md SS10)."""
+async def stats_summary(
+    current_user: CurrentUser = Depends(require_roles(DASHBOARD_ROLES)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Supervizor Dashboard icin agregasyonlar (bkz. ARCHITECTURE.md SS10). Yetki matrisinde
+    'Dashboard goruntuleme' sadece Supervizor/Admin (case SS3.3)."""
     fault_type_rows = await db.execute(select(Incident.fault_type, func.count()).group_by(Incident.fault_type))
     priority_rows = await db.execute(select(Incident.priority, func.count()).group_by(Incident.priority))
 
@@ -409,7 +420,7 @@ async def stats_summary(db: AsyncSession = Depends(get_db)):
 @router.get("/incidents/{incident_id}")
 async def get_incident(
     incident_id: uuid.UUID,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_roles(STAFF_ROLES)),
     db: AsyncSession = Depends(get_db),
 ):
     incident = await db.get(Incident, incident_id)
@@ -562,9 +573,20 @@ async def create_message(
 
 
 @router.get("/incidents/{incident_id}/messages")
-async def list_messages(incident_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def list_messages(
+    incident_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_roles(["SAHA_TEKNISYENI", "NOC_OPERATORU", "SUPERVIZOR", "ADMIN"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Vaka mesaj thread'i sadece atanan teknisyen, NOC ve yonetim rolleri icin gorunur
+    (case SS4.5) - musteri veya baska teknisyenin ozel yazismasi sizmasin diye."""
     incident = await db.get(Incident, incident_id)
     if incident is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
+        )
+    if current_user.role == "SAHA_TEKNISYENI" and current_user.user_id != incident.assigned_team_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},

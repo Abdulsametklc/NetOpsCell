@@ -60,6 +60,7 @@ flowchart TB
     GAME --- GAMEDB
 
     INC -- "REST: POST /predict, /assign\n(senkron, minimum çağrı)" --> AI
+    INC -- "REST: POST /internal/audit\n(403 durumunda, senkron)" --> ID
     ID -.->|"identity.personnel.upserted"| REDIS
     INC -.->|"incident.* events"| REDIS
     AI  -.->|"ai.prediction.completed"| REDIS
