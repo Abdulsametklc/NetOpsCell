@@ -46,6 +46,7 @@ class PowerStatus(str, Enum):
 
 class PredictionMethod(str, Enum):
     LLM = "LLM"
+    ML_MODEL = "ML_MODEL"
     RULE_FALLBACK = "RULE_FALLBACK"
 
 
