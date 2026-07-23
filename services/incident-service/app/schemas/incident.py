@@ -30,3 +30,10 @@ class ResolutionNoteCreate(BaseModel):
 class EvaluationCreate(BaseModel):
     stars: int = Field(ge=1, le=5)
     is_permanent: bool
+
+
+class CustomerReportCreate(BaseModel):
+    """Case SS3.3: 'Arıza oluşturma' yalnızca Müşteri'nin yetkisi - telemetri/AI
+    boru hattından bağımsız, müşterinin kendi yaşadığı sorunu bildirdiği basit form."""
+
+    description: str = Field(min_length=5, max_length=1000)

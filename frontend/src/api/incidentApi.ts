@@ -201,6 +201,39 @@ export async function patchIncidentStatus(
   return envelope.data
 }
 
+const mockMyIncidents: IncidentListItem[] = []
+
+export async function reportIncident(description: string): Promise<IncidentListItem> {
+  if (useIncidentMock()) {
+    const item: IncidentListItem = {
+      id: `mock-report-${Date.now()}`,
+      incident_number: `INC-2026-${String(Date.now()).slice(-6)}`,
+      station_code: 'MUSTERI-BILDIRIMI',
+      current_status: 'YENI',
+      fault_type: FT.BELIRSIZ,
+      priority: P.ORTA,
+      customer_description: description,
+      created_at: new Date().toISOString(),
+    }
+    mockMyIncidents.unshift(item)
+    return item
+  }
+
+  const envelope = await apiFetch<IncidentListItem>('/api/v1/incidents/report', {
+    method: 'POST',
+    body: JSON.stringify({ description }),
+  })
+  if (!envelope.data) throw new Error('Arıza bildirimi cevabı boş')
+  return envelope.data
+}
+
+export async function listMyIncidents(): Promise<IncidentListItem[]> {
+  if (useIncidentMock()) return mockMyIncidents
+
+  const envelope = await apiFetch<IncidentListItem[]>('/api/v1/incidents/mine')
+  return envelope.data ?? []
+}
+
 export function incidentModeLabel(): string {
   return useIncidentMock()
     ? `mock incident (${getApiBaseUrl()})`

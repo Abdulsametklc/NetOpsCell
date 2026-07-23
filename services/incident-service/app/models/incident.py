@@ -16,8 +16,8 @@ class Incident(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     incident_number: Mapped[str] = mapped_column(sa.String(32), unique=True, nullable=False)
     station_code: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-    lat: Mapped[float] = mapped_column(Float, nullable=False)
-    lng: Mapped[float] = mapped_column(Float, nullable=False)
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lng: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     current_status: Mapped[IncidentStatus] = mapped_column(
         sa.Enum(IncidentStatus, name="incident_status"), nullable=False, default=IncidentStatus.YENI
@@ -38,6 +38,7 @@ class Incident(Base):
 
     is_manual_override: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    customer_description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

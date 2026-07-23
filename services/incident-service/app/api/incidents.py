@@ -39,6 +39,7 @@ from app.schemas.contracts import (
     TelemetryInput,
 )
 from app.schemas.incident import (
+    CustomerReportCreate,
     EvaluationCreate,
     FaultTypeChangeRequest,
     ManualAssignRequest,
@@ -74,6 +75,7 @@ def _incident_summary(incident: Incident) -> dict:
         "sla_status": incident.sla_status,
         "resolved_at": incident.resolved_at.isoformat() if incident.resolved_at else None,
         "created_at": incident.created_at.isoformat() if incident.created_at else None,
+        "customer_description": incident.customer_description,
     }
 
 
@@ -268,6 +270,63 @@ async def list_incidents(
     return {"success": True, "data": [_incident_summary(i) for i in incidents], "error": None}
 
 
+@router.post("/incidents/report", status_code=status.HTTP_201_CREATED)
+async def report_incident(
+    payload: CustomerReportCreate,
+    current_user: CurrentUser = Depends(require_roles(["MUSTERI"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Case SS3.3 yetki matrisi: 'Arıza oluşturma' sadece Müşteri'nin hakkı. Telemetri/AI
+    boru hattından tamamen bağımsız - müşteri kendi yaşadığı sorunu bildirir, konum/teknik
+    veri bilmedigi icin lat/lng yok, fault_type BELIRSIZ ve öncelik ORTA ile manuel atama
+    kuyruğuna düşer (NOC/Süpervizör triaj eder, mevcut fault-type-override ve manuel atama
+    akışlarıyla devam eder)."""
+    incident_number = await generate_incident_number(db)
+    now = datetime.now(timezone.utc)
+    incident = Incident(
+        incident_number=incident_number,
+        station_code="MUSTERI-BILDIRIMI",
+        current_status=IncidentStatus.YENI,
+        fault_type=FaultType.BELIRSIZ,
+        priority=Priority.ORTA,
+        sla_due_at=now + SLA_DURATIONS[Priority.ORTA],
+        created_by=current_user.user_id,
+        customer_description=payload.description,
+    )
+    db.add(incident)
+    await db.flush()
+    await db.commit()
+    await db.refresh(incident)
+
+    await publish_event(
+        "incident.created",
+        IncidentCreated(
+            incident_id=str(incident.id),
+            incident_number=incident.incident_number,
+            station_code=incident.station_code,
+            fault_type=FaultType.BELIRSIZ,
+            priority=Priority.ORTA,
+            probability=0.0,
+            created_at=now,
+        ),
+    )
+
+    return {"success": True, "data": _incident_summary(incident), "error": None}
+
+
+@router.get("/incidents/mine")
+async def list_my_incidents(
+    current_user: CurrentUser = Depends(require_roles(["MUSTERI"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Case SS3.3: 'Kendi kayıtlarını görme' - Müşteri sadece kendi bildirdiği arızaları görür."""
+    result = await db.execute(
+        select(Incident).where(Incident.created_by == current_user.user_id).order_by(Incident.created_at.desc())
+    )
+    incidents = result.scalars().all()
+    return {"success": True, "data": [_incident_summary(i) for i in incidents], "error": None}
+
+
 @router.get("/incidents/queue/unassigned")
 async def unassigned_queue(
     current_user: CurrentUser = Depends(require_roles(DASHBOARD_ROLES)),
@@ -420,7 +479,7 @@ async def stats_summary(
 @router.get("/incidents/{incident_id}")
 async def get_incident(
     incident_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_roles(STAFF_ROLES)),
+    current_user: CurrentUser = Depends(require_roles(STAFF_ROLES + ["MUSTERI"])),
     db: AsyncSession = Depends(get_db),
 ):
     incident = await db.get(Incident, incident_id)
@@ -432,6 +491,12 @@ async def get_incident(
     if current_user.role == "SAHA_TEKNISYENI" and current_user.user_id != incident.assigned_team_id:
         # IDOR korumasi (case SS10 - jüri "kayit ID degistirerek baskasinin verisini
         # gorme" senaryosunu dener): kaynagin var oldugunu sizdirmamak icin 404.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
+        )
+    if current_user.role == "MUSTERI" and current_user.user_id != incident.created_by:
+        # Musteri sadece kendi bildirdigi arizayi gorebilir - ayni IDOR korumasi.
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "NOT_FOUND", "message": "Vaka bulunamadi"},
