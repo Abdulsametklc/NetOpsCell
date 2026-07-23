@@ -1,0 +1,1573 @@
+openapi: 3.0.3
+info:
+  title: NetOpsCell API
+  version: "1.0.0"
+  description: |
+    NetOpsCell — Turkcell CodeNight 2026 Final case'i için geliştirilen, saha arıza
+    yönetimi / AI destekli tahmin-atama / oyunlaştırma platformunun **tek birleşik
+    API dokümantasyonu**dur.
+
+    Bu dosya, [ARCHITECTURE.md](../ARCHITECTURE.md) ve [docs/CONTRACTS.md](CONTRACTS.md)
+    kaynak alınarak, kod (`services/*/app/api/*.py`) ile karşılaştırılıp **gerçekte
+    implemente edilmiş** uçlar üzerinden elle yazılmıştır — planlanıp henüz
+    yazılmamış uçlar (örn. `otp/resend`, `GET /ai/predictions`, `GET /game/badges`,
+    `GET /game/ledger/{user_id}`, `PATCH /incidents/{id}/priority`) bu dosyada **yer
+    almaz**. Kod değiştikçe bu dosya da elle güncellenmelidir (otomatik export değildir).
+
+    ## Mimari
+    Sistem bir API Gateway (`:8000`) ve 4 bağımsız mikroservisten oluşur: Identity
+    (`:8001`), Incident (`:8002`), AI (`:8003`), Gamification (`:8004`). Her servisin
+    kendi veritabanı vardır (database-per-service). **İstemciler her zaman Gateway
+    üzerinden** istek atar; Gateway JWT doğrulaması, rate limiting ve routing yapar,
+    kendisi iş mantığı içermez. Bu doküman Gateway'in dışa açtığı uç yüzeyini
+    tanımlar — `servers` alanındaki tek adres budur.
+
+    ## Standart Response Zarfı
+    Tüm servisler aynı zarfı döner:
+    ```json
+    { "success": true, "data": { "...": "..." }, "error": null }
+    { "success": false, "data": null, "error": { "code": "INVALID_TRANSITION", "message": "..." } }
+    ```
+    Aşağıdaki her `200`/`201` yanıtının şeması bu zarfın `data` alanının içeriğini
+    gösterir; hata yanıtları `ErrorEnvelope` şemasını kullanır.
+
+    ## Kimlik Doğrulama
+    Access token **RS256** imzalı JWT'dir (15 dk ömür), `Authorization: Bearer <token>`
+    header'ı ile gönderilir. Gateway, imzayı Identity Service'in `GET /internal/public-key`
+    ucundan aldığı public key ile doğrular ve doğrulanan claim'leri
+    `X-User-Id` / `X-User-Role` / `X-User-Specializations` / `X-User-Regions`
+    header'ları olarak downstream servise **kendisi** enjekte eder — istemci bu
+    header'ları asla doğrudan göndermez/göndermemelidir. Aşağıda listelenen 5 uç
+    (`register/customer`, `otp/verify`, `login`, `refresh`, `POST /telemetry`)
+    dışındaki her uç `Authorization` header'ı ister; eksikse/geçersizse Gateway
+    `401` döner (istek ilgili servise hiç ulaşmaz).
+
+    Rol kısaltmaları: `MUSTERI`, `SAHA_TEKNISYENI`, `NOC_OPERATORU`, `SUPERVIZOR`, `ADMIN`.
+
+    ## Standart Hata Kodları
+    | Kod | HTTP | Anlamı |
+    |---|---|---|
+    | `VALIDATION_ERROR` | 422 | Genel doğrulama hatası |
+    | `WEAK_PASSWORD` | 422 | Şifre politikası ihlali (`violations` dolu) |
+    | `INVALID_OTP` | 422 | OTP kodu geçersiz/süresi dolmuş |
+    | `INVALID_CREDENTIALS` | 401 | E-posta/şifre ya da GSM/OTP hatalı |
+    | `ACCOUNT_LOCKED` | 423 | 5 başarısız girişten sonra kilit (`retry_after_seconds` dolu) |
+    | `TOKEN_EXPIRED` | 401 | Access/refresh token süresi dolmuş |
+    | `TOKEN_INVALID` | 401 | İmza geçersiz / bozuk / çalınma şüphesi tespit edilen token |
+    | `UNAUTHORIZED_TRANSITION` / `FORBIDDEN` | 403 | Rol yetersiz (RBAC) |
+    | `NOT_FOUND` | 404 | Kaynak yok ya da IDOR koruması (var/yok bilgisi sızdırılmaz) |
+    | `INVALID_TRANSITION` | 422 | Incident state machine'de graf dışı geçiş |
+    | `RESOLUTION_NOTE_REQUIRED` | 422 | `COZULDU` geçişinde çözüm notu eksik |
+    | `INCIDENT_NOT_CLOSED` | 422 | Değerlendirme için vaka henüz `KAPANDI` değil |
+    | `ALREADY_EVALUATED` | 409 | Vaka zaten değerlendirilmiş |
+    | `ALREADY_REGISTERED` | 409 | GSM/e-posta ile hesap zaten var |
+    | `RATE_LIMITED` | 429 | Gateway rate limit aşımı |
+    | `SERVICE_UNAVAILABLE` | 503 | Hedef servise Gateway'den ulaşılamadı |
+
+    ## Gerçek Zamanlı Bildirimler (WebSocket)
+    `GET /api/v1/ws/notifications?token=<access_token>` — HTTP Upgrade ile açılan bir
+    WebSocket bağlantısıdır (OpenAPI bunu bir REST işlemi olarak modelleyemediği için
+    burada sadece belgelenmiştir, aşağıdaki `paths` listesinde **yer almaz**). Bağlantı
+    kurulduktan sonra sunucu, kullanıcının `role`/`user_id`'sine göre filtrelenmiş şu
+    olayları JSON olarak push eder: `badge.earned`, `game.points_awarded`, kendisine
+    atanan `incident.assigned`, (Süpervizör/Admin için) `incident.sla_breached`. Olay
+    şemaları için bkz. [docs/CONTRACTS.md §3](CONTRACTS.md) ve [EVENTS.md](../EVENTS.md).
+  contact:
+    name: NetOpsCell Takımı
+servers:
+  - url: http://localhost:8000
+    description: API Gateway (docker compose up sonrası yerel geliştirme ortamı)
+tags:
+  - name: system
+    description: Gateway seviyesinde sistem uçları (routing/iş mantığı içermez)
+  - name: auth
+    description: Identity Service — kayıt, giriş, token yönetimi
+  - name: users
+    description: Identity Service — personel/kullanıcı yönetimi (Admin/Süpervizör)
+  - name: audit
+    description: Identity Service — audit log görüntüleme (Admin)
+  - name: telemetry
+    description: Incident Service — telemetri girişi (AI tahmini tetikler)
+  - name: incidents
+    description: Incident Service — vaka yaşam döngüsü
+  - name: ai
+    description: AI Service — tahmin, ekip atama skorlaması, doğruluk metrikleri
+  - name: gamification
+    description: Gamification Service — liderlik tablosu, oyuncu profili
+  - name: internal
+    description: |
+      Sadece Docker iç ağından (`netopscell-net`) erişilebilir, **Gateway routing
+      tablosunda yer almaz** — istemciler bu uçlara asla erişemez, burada sadece
+      servisler-arası sözleşme şeffaflığı için belgelenmiştir.
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      tags: [system]
+      summary: Tüm servislerin sağlık durumunu agregasyon
+      description: Gateway kendisi her zaman ayaktadır; her downstream servise 3sn timeout ile health check atar.
+      security: []
+      responses:
+        "200":
+          description: Genel sistem durumu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayHealth"
+
+  /api/v1/auth/register/customer:
+    post:
+      tags: [auth]
+      summary: Müşteri kaydı başlat (OTP gönderir)
+      description: "Rol: Public. Ad, soyad, GSM, e-posta(opsiyonel) alır; sabit OTP `1234` üretir (SMS simülasyonu)."
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterCustomerRequest"
+      responses:
+        "200":
+          description: OTP gönderildi
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/RegisterCustomerResponse"
+        "409":
+          description: "`ALREADY_REGISTERED` — bu GSM ile aktif hesap zaten var"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/auth/otp/verify:
+    post:
+      tags: [auth]
+      summary: OTP doğrula, hesabı aktive et, token çifti al
+      description: "Rol: Public. Demo/case kuralı gereği geçerli kod her zaman `1234`'tür."
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OtpVerifyRequest"
+      responses:
+        "200":
+          description: Hesap aktive edildi, access/refresh token döner
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TokenResponse"
+        "404":
+          description: "`NOT_FOUND` — bu GSM ile kayıtlı kullanıcı yok"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: "`INVALID_OTP` — kod geçersiz veya süresi dolmuş"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /api/v1/auth/personnel:
+    post:
+      tags: [auth]
+      summary: Personel hesabı oluştur
+      description: "Rol: **Admin**. Rol/uzmanlık/bölge atanır; `SAHA_TEKNISYENI` için `base_lat`/`base_lon` zorunludur (AI Service atama skorlaması bunu kullanır) ve oluşturulunca `identity.personnel.upserted` event'i yayınlanır."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonnelCreateRequest"
+      responses:
+        "200":
+          description: Personel oluşturuldu
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UserPublic"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "409":
+          description: "`ALREADY_REGISTERED` — bu e-posta ile hesap zaten var"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: "`WEAK_PASSWORD` (violations dolu) ya da `VALIDATION_ERROR` (SAHA_TEKNISYENI için konum eksik)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Giriş yap (personel veya müşteri)
+      description: |
+        Rol: Public. Tek uçtan iki akış kabul edilir:
+        - Personel: `{email, password}`
+        - Müşteri: `{gsm, otp}` (otp her zaman `1234`; kullanıcı yoksa örtük olarak oluşturulur)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Giriş başarılı
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TokenPair"
+        "401":
+          description: "`INVALID_CREDENTIALS` — e-posta/şifre ya da OTP hatalı"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: "`VALIDATION_ERROR` — `{email,password}` ya da `{gsm,otp}` çifti eksik"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "423":
+          description: "`ACCOUNT_LOCKED` — 5 başarısız denemeden sonra hesap kilitli (`retry_after_seconds` dolu)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "429":
+          $ref: "#/components/responses/RateLimitedError"
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refresh token rotation ile yeni token çifti al
+      description: Rol Public (refresh token sahipliği yeterli). Kullanılan token `revoked_at` ile işaretlenir; zaten kullanılmış bir token tekrar gelirse çalınma şüphesiyle kullanıcının **tüm** oturumları iptal edilir.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Yeni token çifti
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TokenPair"
+        "401":
+          description: "`TOKEN_INVALID` (geçersiz/çalınma şüphesi) ya da `TOKEN_EXPIRED`"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      summary: Refresh token'ı iptal et
+      description: "Rol: Authenticated."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "200":
+          description: Oturum kapatıldı (idempotent — token zaten yoksa/iptalse de 200 döner)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/v1/auth/me:
+    get:
+      tags: [auth]
+      summary: JWT'den giriş yapmış kullanıcının profilini getir
+      description: "Rol: Authenticated."
+      responses:
+        "200":
+          description: Kullanıcı profili
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UserPublic"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/v1/auth/users:
+    get:
+      tags: [users]
+      summary: Filtreli personel listesi
+      description: "Rol: **Admin, Süpervizör**. `MUSTERI` rolündeki kullanıcılar bu listede görünmez."
+      parameters:
+        - name: role
+          in: query
+          schema:
+            $ref: "#/components/schemas/PersonnelRole"
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Personel listesi
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/UserPublic"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/v1/auth/users/{user_id}:
+    patch:
+      tags: [users]
+      summary: Kullanıcı rol/uzmanlık/bölge/aktiflik güncelle
+      description: "Rol: **Admin**. Rol değişimi `ROLE_CHANGED` audit log kaydı oluşturur; sonuç `SAHA_TEKNISYENI` ve konumu doluysa `identity.personnel.upserted` event'i yayınlar."
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdateRequest"
+      responses:
+        "200":
+          description: Güncellenmiş kullanıcı
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UserPublic"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/auth/audit-logs:
+    get:
+      tags: [audit]
+      summary: Filtreli audit log listesi
+      description: "Rol: **Admin**."
+      parameters:
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: action_type
+          in: query
+          schema:
+            type: string
+            example: LOGIN_FAILURE
+        - name: limit
+          in: query
+          description: Sunucu tarafında 200 ile sınırlanır
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Audit log kayıtları
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/AuditLogEntry"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/v1/telemetry:
+    post:
+      tags: [telemetry]
+      summary: Telemetri girişi (AI tahminini senkron tetikler)
+      description: |
+        Rol: Public (NOC/Admin arayüzü ya da simülatör script'i kullanır; Gateway
+        seviyesinde bu uç kimlik doğrulaması istemez). AI Service'e senkron
+        `predict` çağrısı yapar:
+        - AI Service'e ulaşılamazsa (2sn timeout + 1 retry) vaka yine de
+          `fault_type=BELIRSIZ`, `priority=ORTA` ile açılır, servis asla 500 dönmez.
+        - Tahmin `suggestion=IZLE` ise vaka **açılmaz**, sadece izlenir.
+        - Aksi halde vaka açılır ve AI Service'in atama skorlamasıyla otomatik ekip
+          atanmaya çalışılır (kapasite/uzmanlık uygunsa).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelemetryInput"
+      responses:
+        "201":
+          description: Telemetri kaydedildi (vaka açılmış/açılmamış olabilir)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TelemetrySubmitResult"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/incidents:
+    get:
+      tags: [incidents]
+      summary: Vaka listesi
+      description: "Rol: Authenticated (kapsam rol bazlı). `SAHA_TEKNISYENI` sadece kendine atanan vakaları görür; diğer roller tümünü görür. *(Not: case dokümanında planlanan `status`/`priority`/`fault_type`/`station_code`/tarih filtreleri henüz implemente edilmedi — bu uç şu an filtresiz tam liste döner.)*"
+      responses:
+        "200":
+          description: Vaka özet listesi
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/IncidentSummary"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/v1/incidents/queue/unassigned:
+    get:
+      tags: [incidents]
+      summary: Atanmamış / kapasite bekleyen vaka kuyruğu
+      description: "Rol: Authenticated (Gateway seviyesinde token zorunlu; case planında Süpervizöre özel olsa da serviste ek rol kontrolü yoktur — servis içinde herkes çağırabilir)."
+      responses:
+        "200":
+          description: Atanmamış vakalar (oluşturulma sırasına göre)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/IncidentSummary"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/v1/incidents/stats/summary:
+    get:
+      tags: [incidents]
+      summary: Süpervizör dashboard agregasyonları
+      description: "Rol: Authenticated (Gateway seviyesinde token zorunlu; serviste ek rol kontrolü yoktur)."
+      responses:
+        "200":
+          description: Dashboard istatistikleri
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/IncidentStatsSummary"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/v1/incidents/{incident_id}:
+    get:
+      tags: [incidents]
+      summary: Vaka detayı
+      description: "Rol: Authenticated + sahiplik kontrolü. `SAHA_TEKNISYENI`, kendine atanmamış bir vakaya erişmeye çalışırsa IDOR koruması gereği `404` alır (kaynağın var olup olmadığı sızdırılmaz)."
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Vaka detayı
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/IncidentSummary"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/incidents/{incident_id}/status:
+    patch:
+      tags: [incidents]
+      summary: Vaka durumunu değiştir (state machine)
+      description: |
+        Rol: Authenticated + state machine + rol/sahiplik kontrolü. Graf dışı bir
+        geçiş `422 INVALID_TRANSITION`, geçerli ama yetkisiz bir geçiş `403
+        UNAUTHORIZED_TRANSITION` döner. `COZULDU`'ya geçişte `note` zorunludur
+        (yoksa `422 RESOLUTION_NOTE_REQUIRED`) ve bu not aynı zamanda çözüm notu
+        olarak kaydedilir; `incident.resolved` event'i yayınlanır.
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusChangeRequest"
+      responses:
+        "200":
+          description: Güncellenmiş vaka
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/IncidentSummary"
+        "403":
+          description: "`UNAUTHORIZED_TRANSITION` — geçerli geçiş ama yetkisiz rol/kişi"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          description: "`INVALID_TRANSITION` (graf dışı geçiş) ya da `RESOLUTION_NOTE_REQUIRED`"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /api/v1/incidents/{incident_id}/assign:
+    patch:
+      tags: [incidents]
+      summary: Manuel ekip atama (override)
+      description: "Rol: **Süpervizör, Admin**. Sadece henüz atanmamış (`YENI`) vakalar için; atanmış bir vakayı yeniden atamak (reassign) kapsam dışıdır. `incident.assigned` event'i `assigned_by=<user_id>` ile yayınlanır."
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualAssignRequest"
+      responses:
+        "200":
+          description: Güncellenmiş vaka
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/IncidentSummary"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          description: "`INVALID_TRANSITION` — vaka zaten `YENI` dışında bir durumda"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /api/v1/incidents/{incident_id}/fault-type:
+    patch:
+      tags: [incidents]
+      summary: AI'nin atadığı arıza türünü değiştir (override)
+      description: "Rol: **NOC Operatörü, Süpervizör**. Değişiklik `incident.type_changed` event'i olarak AI Service'e bildirilir (doğruluk metriği takibi için)."
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FaultTypeChangeRequest"
+      responses:
+        "200":
+          description: Güncellenmiş vaka
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/IncidentSummary"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/incidents/{incident_id}/messages:
+    post:
+      tags: [incidents]
+      summary: Vaka thread'ine mesaj ekle
+      description: "Rol: **Atanan Saha Teknisyeni, NOC Operatörü**."
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageCreate"
+      responses:
+        "201":
+          description: Oluşturulan mesaj
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/IncidentMessage"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    get:
+      tags: [incidents]
+      summary: Vaka thread mesajlarını listele
+      description: "Rol: Authenticated (serviste ek rol/sahiplik kontrolü yoktur)."
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Mesaj listesi (kronolojik)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/IncidentMessage"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/incidents/{incident_id}/resolution-note:
+    post:
+      tags: [incidents]
+      summary: Ek çözüm notu ekle
+      description: "Rol: **Atanan Saha Teknisyeni**. Durum değişikliği gerektirmeyen ara notlar için (`COZULDU` geçişindeki zorunlu nottan bağımsız)."
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolutionNoteCreate"
+      responses:
+        "201":
+          description: Oluşturulan not
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ResolutionNoteResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/incidents/{incident_id}/evaluation:
+    post:
+      tags: [incidents]
+      summary: Çözümü 1-5 yıldız değerlendir
+      description: "Rol: **NOC Operatörü**. Vaka `KAPANDI` durumunda olmalı; tek seferliktir. `incident.evaluated` event'i yayınlanır (`is_permanent=false` ise Gamification ilgili teknisyene ceza uygular)."
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluationCreate"
+      responses:
+        "201":
+          description: Oluşturulan değerlendirme
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/EvaluationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          description: "`ALREADY_EVALUATED` — vaka zaten değerlendirilmiş"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: "`INCIDENT_NOT_CLOSED` — vaka henüz `KAPANDI` durumunda değil"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /api/v1/ai/predict:
+    post:
+      tags: [ai]
+      summary: Telemetriden arıza tahmini üret
+      description: |
+        Normalde Incident Service tarafından `POST /api/v1/telemetry` sırasında
+        senkron çağrılır; Gateway üzerinden doğrudan da çağrılabilir. LLM
+        sağlayıcısı zaman aşımına uğrarsa otomatik olarak eğitilmiş ML modeli
+        fallback'ine (`method=ML_MODEL`), o da başarısız olursa kural tabanlı
+        fallback'e (`method=RULE_FALLBACK`) düşer — her koşulda geçerli bir
+        `200` yanıtı döner, girdiye göre çıktı **gerçekten** değişir (sabit/hardcoded
+        çıktı yasak kuralı).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelemetryInput"
+      responses:
+        "200":
+          description: Tahmin sonucu
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PredictResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/ai/assign:
+    post:
+      tags: [ai]
+      summary: Deterministik saha ekibi atama skorlaması
+      description: |
+        Vaka gerçekten oluşturulduktan **sonra** Incident Service tarafından
+        çağrılır. Skor = `uzmanlik_eslesme × 0.4 + mesafe_yakinlik × 0.3 + bosluk_orani × 0.3`.
+        Kapasitesi dolu olmayan bir ekip yoksa `queued=true` döner (Incident Service
+        vakayı `YENI`/atanmamış bırakıp manuel atama kuyruğuna düşürür).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignRequest"
+      responses:
+        "200":
+          description: Atama skorlama sonucu
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AssignResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/ai/teams:
+    get:
+      tags: [ai]
+      summary: Aktif ekip roster'ı + güncel iş yükü
+      description: "Süpervizör Dashboard'daki manuel atama dropdown'u için (demo şeffaflığı)."
+      responses:
+        "200":
+          description: Ekip listesi
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/TeamRosterItem"
+
+  /api/v1/ai/accuracy:
+    get:
+      tags: [ai]
+      summary: Tahmin doğruluk oranı
+      description: "`doğru/toplam × 100`. `breakdown=category` ile arıza türü bazlı kırılım eklenir."
+      parameters:
+        - name: breakdown
+          in: query
+          schema:
+            type: string
+            enum: [category]
+      responses:
+        "200":
+          description: Doğruluk metriği
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AccuracyResponse"
+
+  /api/v1/game/leaderboard:
+    get:
+      tags: [gamification]
+      summary: Liderlik tablosu
+      description: "Rol: Authenticated (herkes görebilir). `period` verilmezse tüm-zamanlar toplamı döner."
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly]
+            default: daily
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Puan sıralı liste
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/LeaderboardEntry"
+
+  /api/v1/game/profile/{user_id}:
+    get:
+      tags: [gamification]
+      summary: Oyuncu profili (puan, seviye, rozetler, sıralama)
+      description: "Rol: Self / **Süpervizör** / **Admin** (IDOR koruması — başkasının profiline erişim `403 FORBIDDEN`)."
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: "Oyuncu profili (henüz hiç puan kazanmamışsa `total_points=0`, `level=BRONZ` ile döner)"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/GameProfile"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /internal/public-key:
+    get:
+      tags: [internal]
+      summary: Identity Service RS256 public key
+      description: Gateway, access token imzasını bu public key ile doğrular; private key'e hiçbir zaman ihtiyaç duymaz.
+      security: []
+      responses:
+        "200":
+          description: PEM formatında public key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicKeyResponse"
+
+  /internal/audit:
+    post:
+      tags: [internal]
+      summary: Diğer servislerden gelen 403/audit kaydı yaz
+      description: Incident/AI/Gamification servisleri kendi yetkisiz erişim denemelerini buraya senkron yazar.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternalAuditRequest"
+      responses:
+        "200":
+          description: Audit kaydı oluşturuldu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Identity Service tarafından RS256 ile imzalanan access token (`sub`, `role`,
+        `specializations`, `regions`, `token_type`, `iat`, `exp` claim'leri içerir).
+        `POST /api/v1/auth/login` veya `POST /api/v1/auth/otp/verify` ile alınır.
+
+  parameters:
+    IncidentId:
+      name: incident_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    UnauthorizedError:
+      description: "`401` — `TOKEN_INVALID` / `TOKEN_EXPIRED` (Authorization header eksik/geçersiz)"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    ForbiddenError:
+      description: "`403` — `FORBIDDEN` / `UNAUTHORIZED_TRANSITION` (rol yetersiz)"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFoundError:
+      description: "`404` — `NOT_FOUND` (kaynak yok ya da IDOR koruması)"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    ValidationError:
+      description: "`422` — `VALIDATION_ERROR`"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    RateLimitedError:
+      description: "`429` — `RATE_LIMITED`"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+
+  schemas:
+    # ---- Ortak zarf ----
+    ErrorDetail:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: INVALID_TRANSITION
+        message:
+          type: string
+        violations:
+          type: array
+          nullable: true
+          items:
+            type: string
+        retry_after_seconds:
+          type: integer
+          nullable: true
+
+    Envelope:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          nullable: true
+        error:
+          nullable: true
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        data:
+          nullable: true
+          example: null
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+
+    # ---- Ortak enum'lar ----
+    FaultType:
+      type: string
+      enum: [DONANIM, GUC_KESINTISI, BAGLANTI, YAZILIM, ISINMA, BELIRSIZ]
+    Priority:
+      type: string
+      enum: [DUSUK, ORTA, YUKSEK, KRITIK]
+    Suggestion:
+      type: string
+      enum: [IZLE, VAKA_AC, ACIL]
+    PredictionMethod:
+      type: string
+      enum: [LLM, ML_MODEL, RULE_FALLBACK]
+    PowerStatus:
+      type: string
+      enum: [NORMAL, KESINTIDE]
+    IncidentStatus:
+      type: string
+      enum: [YENI, ATANDI, YOLDA, MUDAHALE_EDILIYOR, PARCA_BEKLENIYOR, COZULDU, KAPANDI]
+    SlaStatus:
+      type: string
+      enum: [ACTIVE, MET, BREACHED]
+    PersonnelRole:
+      type: string
+      enum: [SAHA_TEKNISYENI, NOC_OPERATORU, SUPERVIZOR, ADMIN]
+    GameLevel:
+      type: string
+      enum: [BRONZ, GUMUS, ALTIN, PLATIN]
+
+    # ---- Identity ----
+    RegisterCustomerRequest:
+      type: object
+      required: [first_name, last_name, gsm]
+      additionalProperties: false
+      properties:
+        first_name: { type: string }
+        last_name: { type: string }
+        gsm: { type: string, example: "+905551234567" }
+        email: { type: string, nullable: true }
+
+    RegisterCustomerResponse:
+      type: object
+      properties:
+        gsm: { type: string }
+        otp_sent: { type: boolean, default: true }
+
+    OtpVerifyRequest:
+      type: object
+      required: [gsm, code]
+      additionalProperties: false
+      properties:
+        gsm: { type: string }
+        code: { type: string, example: "1234" }
+
+    UserPublic:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        role: { type: string, example: SAHA_TEKNISYENI }
+        first_name: { type: string }
+        last_name: { type: string }
+        gsm: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        specializations:
+          type: array
+          items: { $ref: "#/components/schemas/FaultType" }
+        regions:
+          type: array
+          items: { type: string }
+
+    TokenPair:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        token_type: { type: string, default: bearer }
+        user: { $ref: "#/components/schemas/UserPublic" }
+
+    PersonnelCreateRequest:
+      type: object
+      required: [first_name, last_name, email, password, role]
+      additionalProperties: false
+      properties:
+        first_name: { type: string }
+        last_name: { type: string }
+        email: { type: string, format: email }
+        password:
+          type: string
+          description: "Min 8 karakter, ≥1 büyük harf, ≥1 rakam, ≥1 özel karakter"
+        role: { $ref: "#/components/schemas/PersonnelRole" }
+        specializations:
+          type: array
+          items: { $ref: "#/components/schemas/FaultType" }
+          default: []
+        regions:
+          type: array
+          items: { type: string }
+          default: []
+        base_lat:
+          type: number
+          format: double
+          nullable: true
+          description: "`role=SAHA_TEKNISYENI` ise zorunlu"
+        base_lon:
+          type: number
+          format: double
+          nullable: true
+          description: "`role=SAHA_TEKNISYENI` ise zorunlu"
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      description: "`{email,password}` (personel) ya da `{gsm,otp}` (müşteri) çiftlerinden biri zorunlu"
+      properties:
+        email: { type: string, nullable: true }
+        password: { type: string, nullable: true }
+        gsm: { type: string, nullable: true }
+        otp: { type: string, nullable: true, example: "1234" }
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      additionalProperties: false
+      properties:
+        refresh_token: { type: string }
+
+    LogoutRequest:
+      type: object
+      required: [refresh_token]
+      additionalProperties: false
+      properties:
+        refresh_token: { type: string }
+
+    UserUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        role:
+          allOf: [{ $ref: "#/components/schemas/PersonnelRole" }]
+          nullable: true
+        specializations:
+          type: array
+          items: { $ref: "#/components/schemas/FaultType" }
+          nullable: true
+        regions:
+          type: array
+          items: { type: string }
+          nullable: true
+        is_active: { type: boolean, nullable: true }
+        base_lat: { type: number, format: double, nullable: true }
+        base_lon: { type: number, format: double, nullable: true }
+
+    AuditLogEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid, nullable: true }
+        action_type: { type: string, example: ROLE_CHANGED }
+        resource_type: { type: string, nullable: true }
+        resource_id: { type: string, nullable: true }
+        ip_address: { type: string, nullable: true }
+        result: { type: string, enum: [SUCCESS, FAILURE] }
+        detail: { type: object, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+
+    InternalAuditRequest:
+      type: object
+      required: [action_type, result]
+      properties:
+        user_id: { type: string, format: uuid, nullable: true }
+        action_type: { type: string }
+        result: { type: string, enum: [SUCCESS, FAILURE] }
+        resource_type: { type: string, nullable: true }
+        resource_id: { type: string, nullable: true }
+        ip_address: { type: string, nullable: true }
+        detail: { type: object, nullable: true }
+
+    PublicKeyResponse:
+      type: object
+      properties:
+        public_key_pem: { type: string }
+
+    # ---- Incident ----
+    TelemetryInput:
+      type: object
+      required: [station_code, lat, lng, signal_strength, packet_loss, temperature, power_status]
+      properties:
+        station_code: { type: string, example: IST-BS-0142 }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        signal_strength: { type: number, format: double, description: "dBm, genelde negatif (örn. -105)" }
+        packet_loss: { type: number, format: double, minimum: 0, maximum: 100 }
+        temperature: { type: number, format: double, description: "santigrat" }
+        power_status: { $ref: "#/components/schemas/PowerStatus" }
+        recent_fault_count:
+          type: integer
+          default: 0
+          description: "Son 24 saatte aynı istasyonda kaç arıza kaydı var"
+
+    PredictResponse:
+      type: object
+      properties:
+        probability: { type: number, format: double, minimum: 0, maximum: 1 }
+        fault_type: { $ref: "#/components/schemas/FaultType" }
+        priority: { $ref: "#/components/schemas/Priority" }
+        suggestion: { $ref: "#/components/schemas/Suggestion" }
+        method: { $ref: "#/components/schemas/PredictionMethod" }
+        confidence_explanation:
+          type: string
+          description: "LLM'in/kuralın kısa gerekçesi (Türkçe, 1-2 cümle)"
+
+    IncidentSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        incident_number: { type: string, example: "INC-2026-000123" }
+        station_code: { type: string }
+        current_status: { $ref: "#/components/schemas/IncidentStatus" }
+        fault_type: { $ref: "#/components/schemas/FaultType" }
+        priority: { $ref: "#/components/schemas/Priority" }
+        probability: { type: number, format: double, nullable: true }
+        ai_suggestion:
+          allOf: [{ $ref: "#/components/schemas/Suggestion" }]
+          nullable: true
+        assigned_team_id: { type: string, format: uuid, nullable: true }
+        assigned_team_name: { type: string, nullable: true }
+        sla_due_at: { type: string, format: date-time, nullable: true }
+        sla_status: { $ref: "#/components/schemas/SlaStatus" }
+        resolved_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+
+    TelemetrySubmitResult:
+      type: object
+      properties:
+        telemetry_id: { type: string, format: uuid }
+        ai_available:
+          type: boolean
+          description: "false ise AI Service'e ulaşılamadı (vaka yine de BELIRSIZ/ORTA ile açıldı)"
+        incident:
+          allOf: [{ $ref: "#/components/schemas/IncidentSummary" }]
+          nullable: true
+          description: "`suggestion=IZLE` geldiyse (sadece izleniyor, vaka açılmadıysa) null"
+        prediction:
+          allOf: [{ $ref: "#/components/schemas/PredictResponse" }]
+          nullable: true
+          description: "Sadece vaka açılmadığında (izleme durumunda) dolu gelir"
+
+    StatusChangeRequest:
+      type: object
+      required: [to_status]
+      properties:
+        to_status: { $ref: "#/components/schemas/IncidentStatus" }
+        note:
+          type: string
+          nullable: true
+          description: "`to_status=COZULDU` ise zorunlu"
+
+    MessageCreate:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string, minLength: 1, maxLength: 2000 }
+
+    IncidentMessage:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        sender_id: { type: string, format: uuid }
+        sender_role: { type: string }
+        content: { type: string }
+        created_at: { type: string, format: date-time }
+
+    ResolutionNoteCreate:
+      type: object
+      required: [note]
+      properties:
+        note: { type: string, minLength: 1, maxLength: 4000 }
+
+    ResolutionNoteResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        note: { type: string }
+        created_at: { type: string, format: date-time }
+
+    EvaluationCreate:
+      type: object
+      required: [stars, is_permanent]
+      properties:
+        stars: { type: integer, minimum: 1, maximum: 5 }
+        is_permanent:
+          type: boolean
+          description: "false ise çözüm kalıcı değil kabul edilir (Gamification atanan teknisyene -ceza uygular)"
+
+    EvaluationResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        stars: { type: integer }
+        is_permanent: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    FaultTypeChangeRequest:
+      type: object
+      required: [fault_type]
+      properties:
+        fault_type: { $ref: "#/components/schemas/FaultType" }
+
+    ManualAssignRequest:
+      type: object
+      required: [team_id, team_name]
+      properties:
+        team_id: { type: string, format: uuid }
+        team_name: { type: string, minLength: 1, maxLength: 128 }
+
+    PriorityTrendPoint:
+      type: object
+      properties:
+        day: { type: string, example: Pzt }
+        DUSUK: { type: integer }
+        ORTA: { type: integer }
+        YUKSEK: { type: integer }
+        KRITIK: { type: integer }
+
+    TeamPerformanceEntry:
+      type: object
+      properties:
+        team_id: { type: string, format: uuid }
+        team_name: { type: string }
+        resolved: { type: integer }
+        avg_minutes: { type: number, format: double }
+        reopen_rate: { type: number, format: double }
+
+    IncidentStatsSummary:
+      type: object
+      properties:
+        fault_type_distribution:
+          type: object
+          additionalProperties: { type: integer }
+          example: { DONANIM: 12, ISINMA: 4 }
+        priority_distribution:
+          type: object
+          additionalProperties: { type: integer }
+          example: { KRITIK: 3, YUKSEK: 9 }
+        sla_compliance_rate: { type: number, format: double, nullable: true }
+        sla_breached_active_count: { type: integer }
+        resolved_count: { type: integer }
+        avg_resolution_minutes: { type: number, format: double, nullable: true }
+        unassigned_queue_count: { type: integer }
+        priority_trend:
+          type: array
+          description: "Son 7 gün (bugün dahil), günlük öncelik kırılımı"
+          items: { $ref: "#/components/schemas/PriorityTrendPoint" }
+        team_performance:
+          type: array
+          items: { $ref: "#/components/schemas/TeamPerformanceEntry" }
+
+    # ---- AI ----
+    AssignRequest:
+      type: object
+      required: [incident_id, incident_number, fault_type, priority, lat, lng]
+      properties:
+        incident_id: { type: string, format: uuid }
+        incident_number: { type: string, example: "INC-2026-000123" }
+        fault_type: { $ref: "#/components/schemas/FaultType" }
+        priority: { $ref: "#/components/schemas/Priority" }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+
+    ScoreComponents:
+      type: object
+      properties:
+        uzmanlik_eslesme: { type: number, format: double, description: "0 veya 1" }
+        mesafe_yakinlik: { type: number, format: double, minimum: 0, maximum: 1 }
+        bosluk_orani: { type: number, format: double, minimum: 0, maximum: 1 }
+
+    AssignResponse:
+      type: object
+      properties:
+        queued:
+          type: boolean
+          description: "true ise uygun kapasitede ekip yok; aşağıdaki alanlar null"
+        team_id: { type: string, format: uuid, nullable: true }
+        team_name: { type: string, nullable: true }
+        score: { type: number, format: double, nullable: true }
+        components:
+          allOf: [{ $ref: "#/components/schemas/ScoreComponents" }]
+          nullable: true
+
+    TeamRosterItem:
+      type: object
+      properties:
+        team_id: { type: string, format: uuid }
+        team_name: { type: string }
+        active_load: { type: integer, description: "O anki aktif vaka sayısı" }
+
+    AccuracyBreakdownEntry:
+      type: object
+      properties:
+        total_evaluated: { type: integer }
+        incorrect_count: { type: integer }
+        accuracy_rate: { type: number, format: double, nullable: true }
+
+    AccuracyResponse:
+      allOf:
+        - $ref: "#/components/schemas/AccuracyBreakdownEntry"
+        - type: object
+          properties:
+            by_category:
+              type: object
+              description: "Sadece `?breakdown=category` verildiğinde döner; anahtar `FaultType` değeridir"
+              additionalProperties:
+                $ref: "#/components/schemas/AccuracyBreakdownEntry"
+
+    # ---- Gamification ----
+    LeaderboardEntry:
+      type: object
+      properties:
+        user_id: { type: string, format: uuid }
+        points: { type: integer }
+        display_name: { type: string, nullable: true }
+
+    BadgeEntry:
+      type: object
+      properties:
+        code: { type: string, example: HIZLI_COZUCU }
+        name: { type: string }
+        description: { type: string }
+        earned_at: { type: string, format: date-time }
+
+    GameProfile:
+      type: object
+      properties:
+        user_id: { type: string, format: uuid }
+        display_name: { type: string, nullable: true }
+        total_points: { type: integer }
+        level: { $ref: "#/components/schemas/GameLevel" }
+        resolved_count: { type: integer }
+        avg_points: { type: number, format: double }
+        rank:
+          type: integer
+          nullable: true
+          description: "Tüm kullanıcılar arasındaki sıralama (1-bazlı); henüz puanı yoksa null"
+        badges:
+          type: array
+          items: { $ref: "#/components/schemas/BadgeEntry" }
+
+    # ---- Gateway/system ----
+    GatewayHealth:
+      type: object
+      properties:
+        status: { type: string, enum: [healthy, degraded] }
+        services:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [healthy, unhealthy, unreachable]
+          example:
+            identity: healthy
+            incident: healthy
+            ai: healthy
+            gamification: healthy
