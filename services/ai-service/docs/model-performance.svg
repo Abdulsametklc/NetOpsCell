@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">NetOpsCell AI model performance</title>
+  <desc id="desc">Charts showing cross-validation macro F1 by algorithm, SVM holdout F1 by fault category, and training class distribution.</desc>
+  <rect width="1200" height="900" fill="#f7f8fa"/>
+  <text x="60" y="58" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700" fill="#182230">NetOpsCell AI Model Performansı</text>
+  <text x="60" y="88" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#5b6573">122 örnek | 5-fold CV havuzu: 97 | Ayrı holdout: 25</text>
+
+  <rect x="45" y="120" width="535" height="330" rx="10" fill="#ffffff" stroke="#d9dee7"/>
+  <text x="75" y="158" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#182230">Macro F1 - 5-fold CV</text>
+  <text x="75" y="184" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#687384">Model seçim havuzundaki sonuçlar</text>
+  <line x1="90" y1="390" x2="540" y2="390" stroke="#aeb7c4"/>
+  <line x1="90" y1="220" x2="90" y2="390" stroke="#aeb7c4"/>
+  <text x="60" y="394" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#687384">0</text>
+  <text x="53" y="308" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#687384">0.5</text>
+  <text x="60" y="224" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#687384">1</text>
+  <rect x="120" y="244" width="70" height="146" fill="#d62828"/>
+  <rect x="225" y="246" width="70" height="144" fill="#477998"/>
+  <rect x="330" y="251" width="70" height="139" fill="#477998"/>
+  <rect x="435" y="255" width="70" height="135" fill="#477998"/>
+  <text x="139" y="235" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#d62828">0.856</text>
+  <text x="244" y="237" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#182230">0.845</text>
+  <text x="349" y="242" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#182230">0.817</text>
+  <text x="454" y="246" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#182230">0.796</text>
+  <text x="116" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#182230">SVM</text>
+  <text x="212" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#182230">LogReg</text>
+  <text x="324" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#182230">RF</text>
+  <text x="421" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#182230">GradBoost</text>
+
+  <rect x="620" y="120" width="535" height="330" rx="10" fill="#ffffff" stroke="#d9dee7"/>
+  <text x="650" y="158" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#182230">SVM Holdout F1</text>
+  <text x="650" y="184" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#687384">Hiç görülmemiş 25 örnek</text>
+  <line x1="665" y1="390" x2="1115" y2="390" stroke="#aeb7c4"/>
+  <line x1="665" y1="220" x2="665" y2="390" stroke="#aeb7c4"/>
+  <text x="635" y="394" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#687384">0</text>
+  <text x="628" y="308" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#687384">0.5</text>
+  <text x="635" y="224" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#687384">1</text>
+  <rect x="690" y="239" width="48" height="151" fill="#477998"/>
+  <rect x="760" y="234" width="48" height="156" fill="#477998"/>
+  <rect x="830" y="220" width="48" height="170" fill="#d62828"/>
+  <rect x="900" y="239" width="48" height="151" fill="#477998"/>
+  <rect x="970" y="254" width="48" height="136" fill="#477998"/>
+  <rect x="1040" y="276" width="48" height="114" fill="#e09f3e"/>
+  <text x="696" y="231" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#182230">.89</text>
+  <text x="766" y="226" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#182230">.92</text>
+  <text x="836" y="212" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" fill="#d62828">1.00</text>
+  <text x="906" y="231" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#182230">.89</text>
+  <text x="976" y="246" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#182230">.80</text>
+  <text x="1046" y="268" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#182230">.67</text>
+  <text x="681" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#182230">BAG</text>
+  <text x="752" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#182230">BEL</text>
+  <text x="822" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#182230">DON</text>
+  <text x="891" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#182230">GUC</text>
+  <text x="960" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#182230">ISI</text>
+  <text x="1033" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#182230">YAZ</text>
+
+  <rect x="45" y="490" width="535" height="350" rx="10" fill="#ffffff" stroke="#d9dee7"/>
+  <text x="75" y="528" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#182230">Eğitim verisi dağılımı</text>
+  <circle cx="260" cy="670" r="120" fill="#477998"/>
+  <path d="M260 670 L260 550 A120 120 0 0 1 378 650 Z" fill="#d62828"/>
+  <path d="M260 670 L378 650 A120 120 0 0 1 329 765 Z" fill="#e09f3e"/>
+  <path d="M260 670 L329 765 A120 120 0 0 1 191 765 Z" fill="#2a9d8f"/>
+  <path d="M260 670 L191 765 A120 120 0 0 1 145 628 Z" fill="#7b6d8d"/>
+  <path d="M260 670 L145 628 A120 120 0 0 1 260 550 Z" fill="#8ab17d"/>
+  <rect x="410" y="590" width="14" height="14" fill="#477998"/><text x="435" y="603" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#182230">BELİRSİZ 30</text>
+  <rect x="410" y="620" width="14" height="14" fill="#d62828"/><text x="435" y="633" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#182230">BAGLANTI 22</text>
+  <rect x="410" y="650" width="14" height="14" fill="#e09f3e"/><text x="435" y="663" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#182230">GUC_KESINTISI 22</text>
+  <rect x="410" y="680" width="14" height="14" fill="#2a9d8f"/><text x="435" y="693" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#182230">ISINMA 22</text>
+  <rect x="410" y="710" width="14" height="14" fill="#7b6d8d"/><text x="435" y="723" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#182230">DONANIM 16</text>
+  <rect x="410" y="740" width="14" height="14" fill="#8ab17d"/><text x="435" y="753" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#182230">YAZILIM 10</text>
+
+  <rect x="620" y="490" width="535" height="350" rx="10" fill="#ffffff" stroke="#d9dee7"/>
+  <text x="650" y="528" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#182230">Temel sonuçlar</text>
+  <text x="650" y="585" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#182230">Holdout doğruluğu</text>
+  <text x="1080" y="585" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700" fill="#d62828">%88</text>
+  <line x1="650" y1="605" x2="1125" y2="605" stroke="#e2e6ec"/>
+  <text x="650" y="650" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#182230">Holdout macro F1</text>
+  <text x="1080" y="650" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700" fill="#477998">0.86</text>
+  <line x1="650" y1="670" x2="1125" y2="670" stroke="#e2e6ec"/>
+  <text x="650" y="715" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#182230">Sentetik test</text>
+  <text x="1080" y="715" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700" fill="#2a9d8f">%83.3</text>
+  <line x1="650" y1="735" x2="1125" y2="735" stroke="#e2e6ec"/>
+  <text x="650" y="780" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#687384">Seçilen model: SVM (RBF)</text>
+  <text x="650" y="806" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#687384">C=1.0 | gamma=1.0</text>
+</svg>
