@@ -175,7 +175,10 @@ class TestCombinedContributionsAndCap:
         )
         assert raw_sum > 0.99  # guard: the scenario must actually exceed the cap
         assert probability == 0.99
-        assert fault_type == FaultType.ISINMA  # highest single contributor among the ties/majority
+        # BAGLANTI gets both PACKET_LOSS_WEIGHT (0.30) and SIGNAL_STRENGTH_WEIGHT (0.20) =
+        # 0.50, higher than any single other fault_type's contribution (ISINMA/GUC_KESINTISI
+        # at 0.35, DONANIM at 0.15) - so BAGLANTI is genuinely the dominant contributor here.
+        assert fault_type == FaultType.BAGLANTI
 
     @pytest.mark.parametrize(
         "temperature, packet_loss, signal_strength, power_status, recent_fault_count",
